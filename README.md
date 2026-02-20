@@ -1,12 +1,45 @@
-SELECT
-    COUNT(*) AS totalTransactionCount,
+SimpleModule module = new SimpleModule();
+        module.addSerializer(
+                BigDecimal.class,
+                new TwoDecimalBigDecimalSerializer()
+        );
 
-    TO_CHAR(ROUND(SUM(order_amount), 2), 'FM9999990.00') AS totalOrderAmount,
-    TO_CHAR(ROUND(SUM(refund_amount), 2), 'FM9999990.00') AS totalRefundAmount,
-    TO_CHAR(ROUND(SUM(tax_amount), 2), 'FM9999990.00') AS totalTaxAmount,
-    TO_CHAR(ROUND(SUM(net_settlement_amount), 2), 'FM9999990.00') AS totalNetSettlementAmount,
-    TO_CHAR(ROUND(SUM(settled_amount), 2), 'FM9999990.00') AS totalSettledAmount,
-    TO_CHAR(ROUND(SUM(pending_settlement_amount), 2), 'FM9999990.00') AS totalPendingSettlementAmount
 
-FROM transactions
-WHERE status = 'SUCCESS';
+-----------------------------------------------------------------------------------------------------------------------------
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class TwoDecimalBigDecimalSerializer
+        extends JsonSerializer<BigDecimal> {
+
+    @Override
+    public void serialize(BigDecimal value,
+                          JsonGenerator gen,
+                          SerializerProvider serializers)
+            throws IOException {
+
+        // if (StringUtils.isEmpty(value)) {   // BigDecimal साठी invalid
+        //     gen.writeNumber(
+        //         BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+        //     );
+        //     return;
+        // }
+
+        if (value == null) {
+            gen.writeNumber(
+                BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+            );
+            return;
+        }
+
+        gen.writeNumber(
+            value.setScale(2, RoundingMode.HALF_UP)
+        );
+    }
+}
