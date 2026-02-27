@@ -1,3 +1,34 @@
+
+/**
+ * Custom Jackson serializer used to format numeric values
+ * with exactly two decimal places during JSON serialization.
+ *
+ * This serializer supports {@link BigDecimal}, {@link Double},
+ * {@link Float}, and their primitive equivalents.
+ *
+ * If the value is {@code null}, it writes a JSON null.
+ * If the value type is unsupported, it falls back to default serialization.
+ *
+ * Rounding is applied using {@link RoundingMode#HALF_UP}
+ * to ensure standard financial rounding behavior.
+ */
+public class TwoDecimalSerializer extends JsonSerializer<Object> {
+
+    /**
+     * Serializes numeric values into JSON with two decimal precision.
+     *
+     * @param value        the value to serialize
+     * @param gen          JSON generator used to write output
+     * @param serializers serializer provider
+     * @throws IOException if an I/O error occurs during writing
+     */
+
+
+
+
+
+
+
 SimpleModule module = new SimpleModule();
         module.addSerializer(
                 BigDecimal.class,
