@@ -1,3 +1,25 @@
+/**
+ * Registers a custom Jackson {@link SimpleModule} that configures a
+ * {@link TwoDecimalSerializer} for numeric types.
+ *
+ * This module ensures that all numeric values such as {@link BigDecimal},
+ * {@link Double}, {@code double}, {@link Float}, and {@code float}
+ * are serialized with exactly two decimal places during JSON serialization.
+ *
+ * This helps maintain consistent numeric formatting across the application
+ * when converting Java objects into JSON responses.
+ *
+ * @return A Jackson {@link com.fasterxml.jackson.databind.Module} configured
+ *         to serialize numeric values with two decimal precision.
+ */
+
+
+ 
+
+
+
+
+
 
 /**
  * Custom Jackson serializer used to format numeric values
