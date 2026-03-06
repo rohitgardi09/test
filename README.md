@@ -1,4 +1,23 @@
+
 /**
+ * Updates the report status when a ReportingException occurs during
+ * report generation.
+ *
+ * If the exception message indicates that no records were found,
+ * the report status is set to NO_RECORD_FOUND. Otherwise, the
+ * report status is considered as GENERATION_FAILED.
+ *
+ * This method also logs the appropriate error details along with
+ * the report information to help in debugging and monitoring.
+ *
+ * @param reportManagementDto contains report details such as report id and report name
+ * @param e the ReportingException thrown during report generation
+ */
+
+
+
+
+****************/**
  * Registers a custom Jackson {@link SimpleModule} that configures a
  * {@link TwoDecimalSerializer} for numeric types.
  *
