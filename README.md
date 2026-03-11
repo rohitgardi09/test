@@ -1,4 +1,40 @@
 
+I checked the views related to this validation.
+
+Currently, the validation is happening through MERCHANT_PAYMODE_VIEW, which mainly contains paymode and payment gateway configuration details coming from the "aggregatormerchantpaymode" table.
+
+However, as per the QA expectation, the validation should be done from MERCHANT_INFO_VIEW. This view already combines merchant-related information by joining multiple tables, including Aggmerchantchargedetails (C).
+
+Since the required charge-related details are coming from Aggmerchantchargedetails (C) and are mapped in the form formAggMerchantChargedDetailsC, the validation should ideally be performed from MERCHANT_INFO_VIEW instead of MERCHANT_PAYMODE_VIEW.
+
+Also, in the MERCHANT_INFO_VIEW, the data is already available paymode-wise, so handling the validation from this view would align with the expected data structure and QA requirement.
+
+Please let me know if any additional changes are required from my side.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Updates the report status when a ReportingException occurs during
  * report generation.
