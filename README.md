@@ -1,4 +1,15 @@
 
+Hi,
+
+I reviewed the currency validation logic. Currently, the validation is happening from MERCHANT_PAYMODE_VIEW, where the currencycode is coming from the aggregatormerchantpaymode table. This view mainly contains paymode and gateway configuration details.
+
+However, QA expects the currency validation to be performed from MERCHANT_INFO_VIEW. In this view, the currency is coming from the Aggmerchantchargedetails (C) table, which represents the merchant-level configuration.
+
+Since MERCHANT_PAYMODE_VIEW provides paymode-level currency data, validating from this view may not always reflect the actual merchant-level configuration. Therefore, validating the currency from MERCHANT_INFO_VIEW would ensure that the validation is aligned with the merchant configuration maintained in Aggmerchantchargedetails.
+
+
+
+*************
 I checked the views related to this validation.
 
 Currently, the validation is happening through MERCHANT_PAYMODE_VIEW, which mainly contains paymode and payment gateway configuration details coming from the "aggregatormerchantpaymode" table.
