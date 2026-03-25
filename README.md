@@ -1,3 +1,29 @@
+Issue Update: MEK PDF Password Email Not Sent – Merchant 1003616
+I checked the production logs for merchant 1003616 regarding the issue where the MEK PDF password email was not received.
+Findings:
+The request was successfully processed and the MEK password was generated.
+The notification flow was triggered, and the email service was invoked.
+However, during email sending, the system encountered the following error:
+"javax.mail.MessagingException: Could not connect to SMTP host"
+Due to this SMTP connection failure, the email was not sent.
+As the process failed at the email stage, no entry was created in the Notification_Management table.
+
+
+
+
+
+
+
+
+
+
+
+
+
+.
+
+
+
 
 Hi,
 
