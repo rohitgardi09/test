@@ -1,3 +1,18 @@
+
+@PostMapping("/nb-dv/status")
+@Operation(summary = "Get NB DV transaction status")
+@PreAuthorize("hasAnyRole('TRANSACTION')")
+public TransactionResponse<String> getNbDvStatus(
+        @Valid @RequestBody EncryptedRequest encryptedRequest) {
+
+    logger.info("Getting NB DV transaction status");
+
+    return transactionService.getNbDvStatus(encryptedRequest.getEncryptedRequest());
+}
+
+##**********##
+
+
 public TransactionResponse<String> getNbDvStatus(String encryptedRequest) {
 
     try {
