@@ -1,4 +1,46 @@
-Issue Update: MEK PDF Password Email Not Sent – Merchant 1003616
+public TransactionResponse<String> getNbDvStatus(String encryptedRequest) {
+
+    try {
+        // decrypt
+        String decrypted = transactionUtil.decrypt(encryptedRequest);
+
+        // token काढ
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(decrypted);
+        String token = node.get("transactionToken").asText();
+
+        // existing payment call
+        String status = paymentService.getStatus(token);
+
+        // response बनव
+        String responseJson = "{\"status\":\"" + status + "\"}";
+
+        // encrypt
+        String encryptedResponse = transactionUtil.encrypt(responseJson);
+
+        return TransactionResponse.<String>builder()
+                .status("SUCCESS")
+                .data(encryptedResponse)
+                .build();
+
+    } catch (Exception e) {
+        logger.error("NB DV error", e);
+
+        return TransactionResponse.<String>builder()
+                .status("FAILED")
+                .message("Error while fetching status")
+                .build();
+    }
+}
+
+
+
+
+
+
+
+
+hiIssue Update: MEK PDF Password Email Not Sent – Merchant 1003616
 I checked the production logs for merchant 1003616 regarding the issue where the MEK PDF password email was not received.
 Findings:
 The request was successfully processed and the MEK password was generated.
