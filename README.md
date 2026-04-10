@@ -1,3 +1,11 @@
+This change was initially intended as a hotfix; however, it will now be included in release V1.5.0. Therefore, I am closing this MR.
+
+
+
+
+
+
+
 2026-04-09 04:22:11.427 INFO | com.epay.merchant.controller.ValidationController:109 | principal=  | scenario=/api/merchant/v1/validation/user/captcha | operation=POST | correlation=f6ed4a45-e39c-47cc-952f-2b88178f2163 | validateUserWithCaptcha | Received request for User Validation UserCaptchaValidationRequest(userName=Rohit, requestId=25d64451-e8a3-44da-bb29-2c3588931f0b, requestType=UNBLOCK_USER, captchaHash=rOTXoiQspJxftTJEsjB15ApFn72Jg58QzH6r/jfq0h2WW8zKmF0mEVIsuR3OcYhOcdliYU1xKJVKysxpsX88UQ==)
 2026-04-09 04:22:11.428 INFO | com.epay.merchant.service.ValidationService:69 | principal=  | scenario=/api/merchant/v1/validation/user/captcha | operation=POST | correlation=f6ed4a45-e39c-47cc-952f-2b88178f2163 | validateUserWithCaptcha | Validating user request for user: Rohit
 Hibernate: select cm1_0.id from captcha_management cm1_0 where cm1_0.request_id=? and cm1_0.request_type=? fetch first ? rows only
