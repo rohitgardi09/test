@@ -1,69 +1,14 @@
-
-Request to Update Username and Password for Merchant and Transaction Users
-Hi Team,
-Please update the username and password for the below users in the environment:
-EPAYMERCHANT
-EPAYTRANSACTION
-Username and password details:
-Username: EPAYMERCHANT / EPAYTRANSACTION
-Password: Lkjh_2026
-Kindly apply the changes and confirm once done.
-Thanks & Regards,
-Rohit
-
-
-
-Supriya  sathi REFUNDS GENERATION_FAILED ka hot aheee 
-
-
-2026-04-13 10:26:50.376 INFO | com.epay.reporting.client.ApiClient:148 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | get | Calling uri: http://merchant-merchantservice.int-merchant.svc.cluster.local:9093/api/merchant/v1/validation/access/Supriya/1000003
-2026-04-13 10:26:50.431 DEBUG | com.epay.reporting.validator.ReportManagementValidator:80 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | validateSearchRequest | SearchRequest Validation end for ReportManagementRequest(report=REFUNDS, mId=1000003, durationFromDate=1776018600000, durationToDate=1776104999999, format=CSV)
-2026-04-13 10:26:50.432 INFO | com.epay.reporting.dao.ReportManagementDao:90 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | searchAndGetReportManagement | Searching for report management records with filters: ReportManagementRequest(report=REFUNDS, mId=1000003, durationFromDate=1776018600000, durationToDate=1776104999999, format=CSV)
-2026-04-13 10:26:50.432 INFO | com.epay.reporting.dao.ReportMasterDao:59 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportIdByName | Fetching report ID for report name: REFUNDS
-Hibernate: select rm1_0.id,rm1_0.created_at,rm1_0.description,rm1_0.name,rm1_0.sequence from report_master rm1_0 where rm1_0.name=?
-2026-04-13 10:26:50.440 INFO | com.epay.reporting.dao.ReportMasterDao:62 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportIdByName | Found report ID: 31c452aa-83cb-84a9-e063-0287b10a97a1
-2026-04-13 10:26:50.441 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:43 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | lambda$searchReportManagement$37fc49ad$1 | Building query predicates for report ID: 31c452aa-83cb-84a9-e063-0287b10a97a1 and request: ReportManagementRequest(report=REFUNDS, mId=1000003, durationFromDate=1776018600000, durationToDate=1776104999999, format=CSV)
-2026-04-13 10:26:50.442 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:82 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportIdPredicate | Creating predicate for reportId: 31c452aa-83cb-84a9-e063-0287b10a97a1
-2026-04-13 10:26:50.442 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:95 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getMIdPredicate | Creating predicate for MId: 1000003
-2026-04-13 10:26:50.442 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:108 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getFormatPredicate | Creating predicate for format: CSV
-2026-04-13 10:26:50.443 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:121 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getDurationFromDatePredicate | Creating predicate for durationFromDate: 1776018600000
-2026-04-13 10:26:50.443 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:134 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getDurationToDatePredicate | Creating predicate for durationToDate: 1776104999999
-2026-04-13 10:26:50.444 DEBUG | com.epay.reporting.specification.ReportManagementSpecification:68 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | lambda$searchReportManagement$37fc49ad$1 | Final query predicate: org.hibernate.query.sqm.tree.predicate.SqmJunctionPredicate@87978
-Hibernate: select rm1_0.id,rm1_0.created_at,rm1_0.created_by,rm1_0.duration_from_date,rm1_0.duration_to_date,rm1_0.file_path,rm1_0.format,rm1_0.mid,rm1_0.remarks,rm1_0.report_id,rm1_0.scheduled_id,rm1_0.status,rm1_0.updated_at,rm1_0.updated_by from report_management rm1_0 where 1=1 and rm1_0.report_id=? and rm1_0.mid=? and rm1_0.format=? and rm1_0.duration_from_date>=? and rm1_0.duration_to_date<=? order by rm1_0.created_at desc offset ? rows fetch first ? rows only
-2026-04-13 10:26:50.563 INFO | com.epay.reporting.dao.ReportMasterDao:75 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportNameById | Fetching report name for report ID: 31c452aa-83cb-84a9-e063-0287b10a97a1
-2026-04-13 10:26:50.564 INFO | com.epay.reporting.dao.ReportMasterDao:78 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportNameById | Found report name: REFUNDS
-2026-04-13 10:26:50.565 INFO | com.epay.reporting.dao.ReportMasterDao:75 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportNameById | Fetching report name for report ID: 31c452aa-83cb-84a9-e063-0287b10a97a1
-2026-04-13 10:26:50.566 INFO | com.epay.reporting.dao.ReportMasterDao:78 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | getReportNameById | Found report name: REFUNDS
-2026-04-13 10:26:50.566 INFO | com.epay.reporting.service.ReportManagementService:63 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | searchAndGetReportManagement | Returning list of ReportManagement [ReportManagementResponse(report=REFUNDS, mId=1000003, durationFromDate=1776018600000, durationToDate=1776104999999, format=CSV, status=GENERATION_FAILED, filePath=null, remarks=Report Generation Failed : d125bce2-d5f6-45e8-befa-df00a5ea32ea, requestStateTime=1776076010028, executionTime=1776076010149), ReportManagementResponse(report=REFUNDS, mId=1000003, durationFromDate=1776018600000, durationToDate=1776104999999, format=CSV, status=GENERATION_FAILED, filePath=null, remarks=Report Generation Failed : 9c832f15-8348-45ca-94ae-119487d97659, requestStateTime=1776075574298, executionTime=1776075574417)]
-2026-04-13 10:26:50.568 INFO | com.epay.reporting.service.ReportManagementService:63 | principal=Supriya  | scenario=/api/reporting/v1/report/management/search | operation=POST | correlation=629065ba-4c86-4581-b36c-40ee26945b3e | searchAndGetReportManagement | Session Metrics {
-    30275 nanoseconds spent acquiring 1 JDBC connections;
-    0 nanoseconds spent releasing 0 JDBC connections;
-    217628 nanoseconds spent preparing 2 JDBC statements;
-    117444657 nanoseconds spent executing 2 JDBC statements;
-    0 nanoseconds spent executing 0 JDBC batches;
-    0 nanoseconds spent performing 0 L2C puts;
-    0 nanoseconds spent performing 0 L2C hits;
-    0 nanoseconds spent performing 0 L2C misses;
-    0 nanoseconds spent executing 0 flushes (flushing a total of 0 entities and 0 collections);
-    18702 nanoseconds spent executing 1 pre-partial-flushes;
-    9621 nanoseconds spent executing 1 partial-flushes (flushing a total of 0 entities and 0 collections)
-}
-2026-04-13 10:28:00.029 INFO | com.epay.reporting.scheduler.ReportScheduleManagementScheduler:44 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | scheduleReportGeneration | Scheduler called for scheduleReportGeneration
-2026-04-13 10:28:00.030 INFO | com.epay.reporting.service.ReportScheduleManagementService:92 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | executeReportBySchedule | Started executeReportBySchedule
-2026-04-13 10:28:00.030 INFO | com.epay.reporting.dao.ReportScheduleManagementDao:111 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | executeReportBySchedule | Executing reports by schedule.
-2026-04-13 10:28:00.030 DEBUG | com.epay.reporting.util.DateTimeUtils:82 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | addMinutes | Adding 30 minutes to the current time
-2026-04-13 10:28:00.030 INFO | com.epay.reporting.dao.ReportScheduleManagementDao:180 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | findByStatusAndNextScheduleExecutionTime | Finding report schedules to be executed with status: TO_BE_START and next execution time before: 1776077880030
-Hibernate: select rsm1_0.id,rsm1_0.created_at,rsm1_0.created_by,rsm1_0.format,rsm1_0.frequency,rsm1_0.last_schedule_execution_time,rsm1_0.mid,rsm1_0.next_schedule_execution_time,rsm1_0.remarks,rsm1_0.report_duration,rsm1_0.report_id,rsm1_0.schedule_execution_date,rsm1_0.schedule_execution_time,rsm1_0.status,rsm1_0.updated_at,rsm1_0.updated_by from report_schedule_management rsm1_0 where rsm1_0.status=? and rsm1_0.next_schedule_execution_time<=?
-2026-04-13 10:28:00.039 INFO | com.epay.reporting.dao.ReportScheduleManagementDao:180 | principal=  | scenario=ReportScheduleManagementScheduler | operation=scheduleReportGeneration | correlation=6cbda557-313e-4596-ad6f-8d2afb522c64 | findByStatusAndNextScheduleExecutionTime | Session Metrics {
-    115779 nanoseconds spent acquiring 1 JDBC connections;
-    0 nanoseconds spent releasing 0 JDBC connections;
-    252394 nanoseconds spent preparing 1 JDBC statements;
-    6593787 nanoseconds spent executing 1 JDBC statements;
-    0 nanoseconds spent executing 0 JDBC batches;
-    0 nanoseconds spent performing 0 L2C puts;
-    0 nanoseconds spent performing 0 L2C hits;
-    0 nanoseconds spent performing 0 L2C misses;
-    0 nanoseconds spent executing 0 flushes (flushing a total of 0 entities and 0 collections);
-    0 nanoseconds spent executing 0 pre-partial-flushes;
-    0 nanoseconds spent executing 0 partial-flushes (flushing a total of 0 entities and 0 collections)
-}
+Technical Upgrade: Spring Boot 3.5.8, Vulnerability Fixes, Fix JsonProperty issue and Performance Optimization	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/178
+Add UTRN Parameter in settlement API dynamically v1	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/merge_requests/522
+Update Kafka dev certificate to connect from local	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/191
+Refactor report status handling to differentiate No_record_found from GENERATION_FAILED	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/325#top
+Sensitive information such as Jwt Token,is exposed in the DFRA report	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/312
+Add settlement date in merchant panel transaction(transaction/recent/) page	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/278
+Add observability logging for Kafka message publish completion.	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/327
+Zip download contains empty CSV files when selecting multiple GST months	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/323
+Transaction Detail Must be Two Decimal.	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/303
+Updated controller invoice and gst download method return ResponseEntity to void	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/176
+Missing Synonym for APPADMIN and APPREAD	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/272
+Add settlement date in transaction report (/report/management)	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/issues/280
+Report daily_summary_refund	https://gitlab.epay.sbi/epay/microservices/epay_reports_service/-/work_items/197
+Pending Amount for refund is displayed with negative amount - Production Environment	https://gitlab.epay.sbi/epay/microservices/epay_merchant_service/-/issues/599
