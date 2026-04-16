@@ -1,3 +1,18 @@
+
+Request to Update Username and Password for Merchant and Transaction Users
+Hi Team,
+Please update the username and password for the below users in the environment:
+EPAYMERCHANT
+EPAYTRANSACTION
+Username and password details:
+Username: EPAYMERCHANT / EPAYTRANSACTION
+Password: Lkjh_2026
+Kindly apply the changes and confirm once done.
+Thanks & Regards,
+Rohit
+
+
+
 Supriya  sathi REFUNDS GENERATION_FAILED ka hot aheee 
 
 
