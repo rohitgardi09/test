@@ -1,10 +1,9 @@
 Hi Team,
 
-Service  :-  Merchant Service 
-Service  :- Report Service
+The latest changes for Merchant Service and Report Service have been deployed in the pre-production environment. Kindly proceed with testing.
 
-There are the changes we are deployed in pre-prod. Kindly plan to test below changes and let us know for any concerns.
+Please share if any concerns.
 
 Thanks & Regards,
 Rohit Gardi
-Junior Software developer
+Junior Software Developer
