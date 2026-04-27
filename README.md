@@ -233,3 +233,73 @@ try {
 ✔ Global handler nahi use kela (as per requirement)
 
 */
+
+
+
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.dao.ExceptionLogDao;
+import com.epay.merchant.dto.ExceptionLogDto;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionLogService {
+
+    private final ExceptionLogDao exceptionLogDao;
+
+    public void logException(Exception e, String merchantId, String remark) {
+
+        try {
+            ExceptionLogDto dto = ExceptionLogDto.builder()
+                    .type(e.getClass().getName())
+                    .stacktrace(getStackTrace(e))
+                    .path(getRootPath(e))
+                    .merchantId(merchantId != null ? merchantId : "SYSTEM")
+                    .remark(remark != null ? remark : e.getMessage())
+                    .createdAt(System.currentTimeMillis())
+                    .createdBy(merchantId != null ? merchantId : "SYSTEM")
+                    .build();
+
+            exceptionLogDao.saveExceptionLog(dto);
+
+        } catch (Exception ex) {
+            System.err.println("ExceptionLogService failed: " + ex.getMessage());
+        }
+    }
+
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        String trace = sw.toString();
+
+        return trace.length() > 5000 ? trace.substring(0, 5000) : trace;
+    }
+
+    private String getRootPath(Exception e) {
+
+        Throwable root = e;
+
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+
+        StackTraceElement[] stackTrace = root.getStackTrace();
+
+        if (stackTrace == null || stackTrace.length == 0) {
+            return "unknown";
+        }
+
+        StackTraceElement element = stackTrace[0];
+
+        return element.getClassName() + "."
+                + element.getMethodName()
+                + "(" + element.getFileName()
+                + ":" + element.getLineNumber() + ")";
+    }
+}
