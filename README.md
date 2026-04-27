@@ -259,3 +259,77 @@ public void logException(Exception e, String merchantId, String remark) {
         ex.printStackTrace();
     }
 }
+
+
+
+
+
+
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.dao.ExceptionLogDao;
+import com.epay.merchant.dto.ExceptionLogDto;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionLogService {
+
+    private final ExceptionLogDao exceptionLogDao;
+
+    // 🔥 MAIN METHOD
+    public void logException(Exception e, String merchantId, String remark) {
+
+        try {
+            ExceptionLogDto dto = ExceptionLogDto.builder()
+                    .type(e.getClass().getName())
+
+                    // 👉 full stacktrace
+                    .stacktrace(getStackTrace(e))
+
+                    // 👉 first line of stacktrace (NO FILTER)
+                    .path(getPath(e))
+
+                    .merchantId(merchantId != null ? merchantId : "SYSTEM")
+
+                    // 👉 full stacktrace remark madhe pan
+                    .remark(getStackTrace(e))
+
+                    .createdAt(System.currentTimeMillis())
+                    .createdBy("SYSTEM")
+                    .build();
+
+            exceptionLogDao.saveExceptionLog(dto);
+
+        } catch (Exception ex) {
+            ex.printStackTrace(); // fallback
+        }
+    }
+
+    // 🔥 FULL STACKTRACE
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
+    }
+
+    // 🔥 PATH (NO FILTER — direct first line)
+    private String getPath(Exception e) {
+
+        StackTraceElement[] stackTrace = e.getStackTrace();
+
+        if (stackTrace == null || stackTrace.length == 0) {
+            return "unknown";
+        }
+
+        StackTraceElement element = stackTrace[0];
+
+        return element.getClassName() + "." + element.getMethodName()
+                + "(" + element.getFileName() + ":" + element.getLineNumber() + ")";
+    }
+}
