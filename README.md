@@ -233,3 +233,29 @@ try {
 ✔ Global handler nahi use kela (as per requirement)
 
 */
+
+
+
+
+public void logException(Exception e, String merchantId, String remark) {
+
+    try {
+        ExceptionLogDto dto = ExceptionLogDto.builder()
+                .type(e.getClass().getName())
+                .stacktrace(getStackTrace(e))
+                .path(getPath(e))
+                .merchantId(merchantId != null ? merchantId : "SYSTEM")
+
+                // 👉 IMPORTANT CHANGE
+                .remark(getStackTrace(e))  
+
+                .createdAt(System.currentTimeMillis())
+                .createdBy("SYSTEM")
+                .build();
+
+        exceptionLogDao.saveExceptionLog(dto);
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+    }
+}
