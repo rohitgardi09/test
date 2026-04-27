@@ -49,3 +49,187 @@ We need to create a exception log mechanism which can catch all type of exceptio
 
 * Test cases should have 90% coverage
 
+
+// ============================================================
+// STEP 1 — DB TABLE (RUN IN DATABASE)
+// ============================================================
+
+/*
+CREATE TABLE exception_log (
+    type        VARCHAR(255),
+    stacktrace  VARCHAR(5000),
+    path        VARCHAR(500),
+    merchant_id VARCHAR(100),
+    remark      VARCHAR(1000),
+    created_at  BIGINT,
+    created_by  VARCHAR(100)
+);
+*/
+
+
+// ============================================================
+// STEP 2 — ENTITY CLASS
+// FILE: com.epay.merchant.entity.ExceptionLog.java
+// ============================================================
+
+package com.epay.merchant.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "exception_log")
+public class ExceptionLog {
+
+    @Id
+    private Long createdAt; // JPA la ID pahije mhanun use karto
+
+    private String type;
+
+    @Column(length = 5000)
+    private String stacktrace;
+
+    private String path;
+
+    private String merchantId;
+
+    private String remark;
+
+    private String createdBy;
+
+    // getters setters
+
+    public Long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Long createdAt) { this.createdAt = createdAt; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public String getStacktrace() { return stacktrace; }
+    public void setStacktrace(String stacktrace) { this.stacktrace = stacktrace; }
+
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
+
+    public String getMerchantId() { return merchantId; }
+    public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
+
+    public String getRemark() { return remark; }
+    public void setRemark(String remark) { this.remark = remark; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+}
+
+
+// ============================================================
+// STEP 3 — REPOSITORY
+// FILE: com.epay.merchant.repository.ExceptionLogRepository.java
+// ============================================================
+
+package com.epay.merchant.repository;
+
+import com.epay.merchant.entity.ExceptionLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ExceptionLogRepository extends JpaRepository<ExceptionLog, Long> {
+}
+
+
+// ============================================================
+// STEP 4 — SERVICE
+// FILE: com.epay.merchant.service.ExceptionLogService.java
+// ============================================================
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.entity.ExceptionLog;
+import com.epay.merchant.repository.ExceptionLogRepository;
+import org.springframework.stereotype.Service;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+@Service
+public class ExceptionLogService {
+
+    private final ExceptionLogRepository repository;
+
+    public ExceptionLogService(ExceptionLogRepository repository) {
+        this.repository = repository;
+    }
+
+    public void logException(Exception e, String merchantId, String remark) {
+
+        try {
+            ExceptionLog log = new ExceptionLog();
+
+            log.setCreatedAt(System.currentTimeMillis()); // unique id
+            log.setType(e.getClass().getName());
+            log.setStacktrace(getStackTrace(e));
+            log.setPath(getPath(e));
+            log.setMerchantId(merchantId != null ? merchantId : "SYSTEM");
+            log.setRemark(remark);
+            log.setCreatedBy("SYSTEM");
+
+            repository.save(log);
+
+        } catch (Exception ex) {
+            ex.printStackTrace(); // fallback
+        }
+    }
+
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
+    }
+
+    private String getPath(Exception e) {
+        StackTraceElement element = e.getStackTrace()[0];
+        return element.getClassName() + "." + element.getMethodName()
+                + "(" + element.getFileName() + ":" + element.getLineNumber() + ")";
+    }
+}
+
+
+// ============================================================
+// STEP 5 — HOW TO USE (ANY EXISTING CLASS)
+// ============================================================
+
+/*
+
+// inject service
+private final ExceptionLogService exceptionLogService;
+
+public YourClass(ExceptionLogService exceptionLogService) {
+    this.exceptionLogService = exceptionLogService;
+}
+
+
+// use in catch block
+try {
+    // your logic
+} catch (Exception e) {
+
+    exceptionLogService.logException(e, merchantId, "your method failed");
+
+    throw e;
+}
+
+*/
+
+
+// ============================================================
+// 🎯 FINAL RESULT
+// ============================================================
+
+/*
+✔ Exception DB madhe store honar
+✔ Stacktrace full milnar
+✔ Exact line (path) milnar
+✔ Debugging easy honar
+✔ Global handler nahi use kela (as per requirement)
+
+*/
