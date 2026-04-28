@@ -1,305 +1,207 @@
-Topic - Capture Exception and Store in DB
-
-# Description
-
-We need to create a exception log mechanism which can catch all type of exceptions in the system and log into the db with detailed stacktrace where we can analysis which class method, code line has thrown the exception.
-
-# Data Flow
-
-1. User / Scheduler / kafka will triger java methods
-2. Java method will execute the code flow
-3. Code flow may throw exceptions in between
-4. We need to catch and log that exception 
-
-# Testing Check List
-
-* Testing which covers all main functionalities
-
-# Developer Checklist
-
-* Class Flow
-
-![ClassFlow.png](/-/project/22/uploads/fb6a534f1bf8fe74d293c775fc49de14/ClassFlow.png)
-
-* 90% Unit test case coverage
-
-# Development Steps
-
-1. Create ExeptionLog Service
-2. Create log exception method which send Exception object, Mid, String remark(optional)
-3. Inject this class in calling classes
-4. Call log exception method in every catch block
-
-# Database Tables
-
-* Exception_Log (Append Only table)
-
-  | Column | Type |
-  |--------|------|
-  | Type | varchar |
-  | Stacktrace | varchar |
-  | Path | varchar |
-  | Merchant_Id | varchar |
-  | Remark | varchar |
-  | Created_At | number |
-  | Created_By | varchar |
 
 
-# Acceptance Criteria
 
-* Test cases should have 90% coverage
+ ### 1.Spring Boot 3.5.8, Vulnerability Fixes, Fix JsonProperty issue and Performance Optimization
+   This epic encompasses three critical technical upgrades to improve system security, consistency, and performance:
+
+1.1. **Spring Boot Version Upgrade**
+   * Update from Spring Boot `3.5.6` to `3.5.8`
+   * Address Quay-reported dependency vulnerabilities
+   * Specific focus on logback-core `1.5.18` security fixes
+1.2. **JSON Field Standardization**
+   * Resolve duplicate field naming in API responses
+   * Standardize on `mId` field naming convention
+   * Remove redundant `mid` fields
+1.3. **Performance Enhancement**
+   * Implement Jackson BlackBird ObjectMapper
+   * Optimize JSON serialization/deserialization
+   * Improve overall API response times
+   
+   
+ ### 2. UTRN Parameter in settlement API dynamically v1
 
 
-// ============================================================
-// STEP 1 — DB TABLE (RUN IN DATABASE)
-// ============================================================
-
-/*
-CREATE TABLE exception_log (
-    type        VARCHAR(255),
-    stacktrace  VARCHAR(5000),
-    path        VARCHAR(500),
-    merchant_id VARCHAR(100),
-    remark      VARCHAR(1000),
-    created_at  BIGINT,
-    created_by  VARCHAR(100)
-);
-*/
+ ### 3.Update Kafka dev certificate to connect from local
 
 
-// ============================================================
-// STEP 2 — ENTITY CLASS
-// FILE: com.epay.merchant.entity.ExceptionLog.java
-// ============================================================
+### Update Certificates
 
-package com.epay.merchant.entity;
+---
 
-import jakarta.persistence.*;
+For development, developer connects Dev env Kafka server which requires following SSL configuration:
 
-@Entity
-@Table(name = "exception_log")
-public class ExceptionLog {
+> ```
+>   kafka:
+>     bootstrapServers: dev-cluster-kafka-bootstrap-dev-kafka.apps.dev.sbiepay.sbi:443
+>     # Spring-Kafka SSL Configuration
+>     properties:
+>       security.protocol: SSL
+>       ssl:
+>         truststore:
+>           location: C:/certs/kafka/dev-cluster-cluster-ca-cert.p12
+>           password: ******
+>           type: PKCS12
+>         keystore:
+>           location: C:/certs/kafka/dev-cluster-clients-ca-cert.p12
+>           password: ******
+>           type: PKCS12
+> ```
 
-    @Id
-    private Long createdAt; // JPA la ID pahije mhanun use karto
+#### Get new certs files and password from DevOps team and test it.
 
-    private String type;
+### Code improvement:
 
-    @Column(length = 5000)
-    private String stacktrace;
+---
 
-    private String path;
+Update following logic for all developer fix:
 
-    private String merchantId;
+3.1. Commit new cert file under certs\\kafka
+3.2. Update application yaml file:
+   1. truststore.location: \*\*certs/kafka/\*\*dev-cluster-cluster-ca-cert.p12
+   2. keystore.location: \*\*certs/kafka/\*\*dev-cluster-clients-ca-cert.p12
+3.3. Add following method in ReportUtil.java:
 
-    private String remark;
+   > public static String getAbsolutePath(String fileName) {\
+   > return new File(fileName).getAbsolutePath();\
+   > }
+3.4. Update KafkaProducerConfig.java
 
-    private String createdBy;
+   > props.put(SslConfigs._SSL_TRUSTSTORE_LOCATION_CONFIG_, **_getAbsolutePath(_kafkaProducerSettings.getTrustLocation()_)_**);
+   >
+   > props.put(SslConfigs._SSL_KEYSTORE_LOCATION_CONFIG_, **_getAbsolutePath(_kafkaProducerSettings.getKeyLocation()_)_**);
 
-    // getters setters
+#### Acceptance criteria:
 
-    public Long getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Long createdAt) { this.createdAt = createdAt; }
+* Test API which includes the KAFKA publisher and consumer.
+* Attach screen-prints.
+  
+ ### 4.Refactor report status handling to differentiate 'No record found for the selection.' from 'GENERATION_FAILED'
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+**Description:**\
+Currently, when a report returns no data, the `report-service` marks the status as `GENERATION_FAILED` based on the remark "No record found for the selection.", which is misleading for users.
 
-    public String getStacktrace() { return stacktrace; }
-    public void setStacktrace(String stacktrace) { this.stacktrace = stacktrace; }
+**Goal:** Update the Java `report-service` logic to detect this specific remark and set a new status (`NO_RECORD_FOUND` or similar) instead of `GENERATION_FAILED`. The UI must be updated to display this status as a "No record found" message rather than an error.
 
-    public String getPath() { return path; }
-    public void setPath(String path) { this.path = path; }
+**Tasks:**
 
-    public String getMerchantId() { return merchantId; }
-    public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
+4.1. **Java Service (Backend)**: Locate the report status management logic in `report-service`.
+4.2. **Logic Change**: Implement a check in the result processor:
 
-    public String getRemark() { return remark; }
-    public void setRemark(String remark) { this.remark = remark; }
-
-    public String getCreatedBy() { return createdBy; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+```Java
+Add NO_RECORD_FOUND in ReportStatus.
+Update ReportService.generateReport method's ReportingException catch block as below:
+ReportStatus newStatus;
+if (equalsIgnoreCase(NO_RECORD_FOUND, e.getErrorMessage())) {
+    newStatus = ReportStatus.NO_RECORD_FOUND;
+} else {
+    newStatus = ReportStatus.GENERATION_FAILED;
 }
+reportManagementDao.updateStatusAndRemarks(reportManagementDto.getId(), newStatus, errorReason);
+```
+
+4.3. **UI Updates**: Update the frontend to handle the new `NO_RECORD_FOUND` status and display a friendly message instead of a red error icon.
+4.4. **Testing**: Verify that reports with no data show "No record found" and actual failures still show "Generation Failed".
+
+**Acceptance Criteria:**
+
+* Reports with no data are not marked as `GENERATION_FAILED`.
+* UI displays "No record found for the selection." when the new status is received.
 
 
-// ============================================================
-// STEP 3 — REPOSITORY
-// FILE: com.epay.merchant.repository.ExceptionLogRepository.java
-// ============================================================
+ ### 5.UAT Issue: Sensitive information such as Jwt Token,is exposed in the DFRA report
 
-package com.epay.merchant.repository;
+- Do not show Jwt anywhere.
+- Mask Jwt token. 
+- Remove sensitive data from API responses and logs.
+- Allow only authorized users to access such data.
 
-import com.epay.merchant.entity.ExceptionLog;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface ExceptionLogRepository extends JpaRepository<ExceptionLog, Long> {
-}
+ ### 6.Add settlement date in merchant panel transaction(transaction/recent/) page
 
 
-// ============================================================
-// STEP 4 — SERVICE
-// FILE: com.epay.merchant.service.ExceptionLogService.java
-// ============================================================
+### Business Requirement:
 
-package com.epay.merchant.service;
+---
 
-import com.epay.merchant.entity.ExceptionLog;
-import com.epay.merchant.repository.ExceptionLogRepository;
-import org.springframework.stereotype.Service;
+Settlement Date to be captured in transaction Report by following logic- If transaction is not settled, failed, settlement date will be blank. If transaction is settled, corresponding settlement date should be there.
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+---
 
-@Service
-public class ExceptionLogService {
+**Description:**
 
-    private final ExceptionLogRepository repository;
+This issue tracks the implementation of adding a `settlementDate` field to the JSON response of our `transaction/recent/` endpoint (and any related transaction retrieval endpoints) to enable the UI to display settlement information in the transaction panel.
 
-    public ExceptionLogService(ExceptionLogRepository repository) {
-        this.repository = repository;
-    }
+**Goal:**\
+Enhance transaction visibility by providing settlement details, improving reconciliation and user understanding.
 
-    public void logException(Exception e, String merchantId, String remark) {
+**Technical Details (Backend - report-service):**
 
-        try {
-            ExceptionLog log = new ExceptionLog();
+1. **Identify Data Source:** Determine where the `settlementDate` originates (e.g., another service, database column, calculated field).
+2. **Update DTO/Model:** Add a `settlementDate` field (e.g., `LocalDate` or `ZonedDateTime`) to the `TransactionResponse` DTO/Model in the Java service.
+3. **Fetch & Populate:** Modify the service logic for `transaction/recent/`to fetch and populate this date into the response object.
+4. **API Contract Update:** Document the new field in the OpenAPI/Swagger spec for the `transaction/recent/` endpoint.
+5. **Database (If needed):** Not required.
 
-            log.setCreatedAt(System.currentTimeMillis()); // unique id
-            log.setType(e.getClass().getName());
-            log.setStacktrace(getStackTrace(e));
-            log.setPath(getPath(e));
-            log.setMerchantId(merchantId != null ? merchantId : "SYSTEM");
-            log.setRemark(remark);
-            log.setCreatedBy("SYSTEM");
+**Technical Details (Frontend - UI Panel):**
 
-            repository.save(log);
+1. **API Integration:** Update the frontend service to consume the new `settlementDate` field from the `transaction/recent/` response.
+2. **UI Component:** Add a new column or display element for `Settlement Date` in the existing transaction list/panel.
+3. **Formatting:** Format the date as required (e.g., `YYYY-MM-DD`, `DD/MM/YYYY`).
 
-        } catch (Exception ex) {
-            ex.printStackTrace(); // fallback
-        }
-    }
+**Acceptance Criteria (Backend):**
 
-    private String getStackTrace(Exception e) {
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        return sw.toString();
-    }
+* `transaction/recent/` response includes `settlementDate` field when available.
+* Swagger/OpenAPI spec updated.
+* Unit/Integration tests pass. 
 
-    private String getPath(Exception e) {
-        StackTraceElement element = e.getStackTrace()[0];
-        return element.getClassName() + "." + element.getMethodName()
-                + "(" + element.getFileName() + ":" + element.getLineNumber() + ")";
-    }
-}
+**Acceptance Criteria (Frontend):**
+
+* `Settlement Date` column visible in the transaction panel.
+* Correct date displayed for relevant transactions.
+* Handles cases where `settlementDate` might be null/missing gracefully and display empty.
+
+ ### 7.Add observability logging for Kafka message publish completion.
+**Description**
+
+Add callback-based logging to track Kafka message delivery completion, including processing duration, message key, topic, and offset metadata for successful deliveries, 
+or detailed error information for failed attempts.
+
+ ### 8.Bug: Zip download contains empty CSV files when selecting multiple GST months
 
 
-// ============================================================
-// STEP 5 — HOW TO USE (ANY EXISTING CLASS)
-// ============================================================
+**Description**\
+When merchants select multiple GST months in the report generation panel, the resulting ZIP file downloads successfully but contains empty CSV files (0 KB), despite data existing for those periods individually. This appears to be a batch processing or file compression issue.
 
-/*
+**Steps to Reproduce**
 
-// inject service
-private final ExceptionLogService exceptionLogService;
+1. Navigate to the Merchant Panel \> GST Reports.
+2. Select multiple months (e.g., Jan 2026, Feb 2026).
+3. Click 'Download Zip'.
+4. Extract the downloaded ZIP file.
 
-public YourClass(ExceptionLogService exceptionLogService) {
-    this.exceptionLogService = exceptionLogService;
-}
+**Expected Behavior**\
+The CSV files inside the ZIP should contain sales/tax data for all selected months.
 
+**Actual Behavior**\
+The CSV files are generated but are empty.
 
-// use in catch block
-try {
-    // your logic
-} catch (Exception e) {
-
-    exceptionLogService.logException(e, merchantId, "your method failed");
-
-    throw e;
-}
-
-*/
+ ### 9.Production Environment, Dashboard page>>Transaction Detail Must be Two Decimal.
 
 
-// ============================================================
-// 🎯 FINAL RESULT
-// ============================================================
+IN Production Environment, Dashboard page Transaction Detail Must be Two Decimal.
+TC Description: Transaction Details In The Dashboard Page Refund Adj, Net Settlement, Settled Amt Should be in Two Decimal Actual Behavior: 
+| Refund Adjusted | Net Settlement Amt.(₹) | Settled Amt.(₹) | Pending Amt. (₹)
 
-/*
-✔ Exception DB madhe store honar
-✔ Stacktrace full milnar
-✔ Exact line (path) milnar
-✔ Debugging easy honar
-✔ Global handler nahi use kela (as per requirement)
-
-*/
+  ### 10.Updated controller invoice and gst download method return ResponseEntity to void
 
 
+ ### 11.Report Service - Missing Synonym for APPADMIN and APPREAD
 
 
-package com.epay.merchant.service;
+  ### 12.Pending Amount for refund is displayed with negative amount - Production Environment
+  
+ Description: Pending Amount  for refund is displayed with negative amount - Production
+Steps to reproduce: download refund report.
+Expected result: Amount should not displayed with negative amount
+Actual Result: Amount is displayed with negative amount.
 
-import com.epay.merchant.dao.ExceptionLogDao;
-import com.epay.merchant.dto.ExceptionLogDto;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
-@Service
-@RequiredArgsConstructor
-public class ExceptionLogService {
-
-    private final ExceptionLogDao exceptionLogDao;
-
-    public void logException(Exception e, String merchantId, String remark) {
-
-        try {
-            ExceptionLogDto dto = ExceptionLogDto.builder()
-                    .type(e.getClass().getName())
-                    .stacktrace(getStackTrace(e))
-                    .path(getRootPath(e))
-                    .merchantId(merchantId != null ? merchantId : "SYSTEM")
-                    .remark(remark != null ? remark : e.getMessage())
-                    .createdAt(System.currentTimeMillis())
-                    .createdBy(merchantId != null ? merchantId : "SYSTEM")
-                    .build();
-
-            exceptionLogDao.saveExceptionLog(dto);
-
-        } catch (Exception ex) {
-            System.err.println("ExceptionLogService failed: " + ex.getMessage());
-        }
-    }
-
-    private String getStackTrace(Exception e) {
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        String trace = sw.toString();
-
-        return trace.length() > 5000 ? trace.substring(0, 5000) : trace;
-    }
-
-    private String getRootPath(Exception e) {
-
-        Throwable root = e;
-
-        while (root.getCause() != null) {
-            root = root.getCause();
-        }
-
-        StackTraceElement[] stackTrace = root.getStackTrace();
-
-        if (stackTrace == null || stackTrace.length == 0) {
-            return "unknown";
-        }
-
-        StackTraceElement element = stackTrace[0];
-
-        return element.getClassName() + "."
-                + element.getMethodName()
-                + "(" + element.getFileName()
-                + ":" + element.getLineNumber() + ")";
-    }
-}
+  ### 13.ISD Observations for Report Service
