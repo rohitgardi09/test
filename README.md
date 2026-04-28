@@ -1,3 +1,48 @@
+
+RELEASE NOTE
+Release Summary
+This release delivers critical bug fixes, system optimizations, and platform enhancements, along with dependency upgrades to improve security, performance, and maintainability.
+Scope of Release
+1. Functional Enhancements
+Auditing implemented for Token Management using Hibernate
+Merchant bank account onboarding flow enhanced
+Resend OTP functionality introduced
+User creation password template added
+Kafka publish completion logging added
+2. Bug Fixes
+Resolved issue in forgot password flow when using email ID
+Fixed missing Lombok constructor annotations across request classes
+Addressed JSON property handling issues
+Corrected missing synonym configurations
+3. Performance & Refactoring
+Optimized token validation query
+Refactored captcha generation using configuration-based approach
+Renamed column ENTITY_ID to USER_ID in Notification Management table
+4. Technical Upgrades
+Upgraded to Spring Boot 3.5.8 (includes vulnerability fixes)
+Updated project dependencies and libraries
+Improved overall application performance and stability
+Database Changes
+Column renamed:
+ENTITY_ID → USER_ID (Notification Management table)
+Liquibase scripts applied for schema updates
+Impact Assessment
+Improved authentication and token handling reliability
+Enhanced onboarding and user management workflows
+Better logging and monitoring capability
+Reduced system vulnerabilities due to dependency upgrades
+Risk & Mitigation
+Risk: Dependency upgrade impact on existing modules
+Mitigation: Regression testing completed across critical flows
+Risk: DB schema change impact
+Mitigation: Backward compatibility validated via Liquibase
+Rollback Plan
+Revert application to previous stable build
+Rollback database changes using Liquibase rollback scripts
+Disable new features (OTP resend, auditing) via configuration if required
+
+
+
 समजलं 👍 — तू दिलेल्या points मधले technical details, config, logic, acceptance criteria अजून clearly add करून bank-level detailed release note बनवतो. हा version जास्त strong आहे 👇
 📄 RELEASE NOTE – Report Service
 🔖 Version: release/v1.5.0
