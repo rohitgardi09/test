@@ -1,3 +1,38 @@
+package com.epay.merchant.controller;
+
+import com.epay.merchant.service.ExceptionLogService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/test")
+@RequiredArgsConstructor
+public class TestController {
+
+    private final ExceptionLogService exceptionLogService;
+
+    @GetMapping("/exception")
+    public String testException(@RequestParam(required = false) String merchantId) {
+
+        try {
+            int result = 10 / 0; // force exception
+            return "Success: " + result;
+        } catch (Exception e) {
+
+            exceptionLogService.logException(
+                    e,
+                    merchantId,
+                    "Test exception from controller"
+            );
+
+            return "Exception logged successfully";
+        }
+    }
+}
+
+
+
+
 package com.epay.merchant.service;
 
 import com.epay.merchant.dao.ExceptionLogDao;
