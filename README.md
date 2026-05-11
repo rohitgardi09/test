@@ -1,4 +1,65 @@
-spring_boot=3.5.8
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version "${spring_boot}"
+    id 'io.spring.dependency-management' version "${dependency_plugin}"
+}
+
+group = 'com.epay.utility'
+version = "${version}"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    implementation "org.apache.commons:commons-lang3:${commons_lang3}"
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation "org.mapstruct:mapstruct:${mapstruct}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct}"
+
+    implementation "org.projectlombok:lombok-mapstruct-binding:${lombok_mapstruct}"
+
+    implementation "com.oracle.database.jdbc:ojdbc11:${oracle_driver}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+configurations {
+    all*.exclude module: 'spring-boot-starter-logging'
+    all*.exclude module: 'slf4j-simple'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+
+
+pring_boot=3.5.8
 dependency_plugin=1.1.7
 
 oracle_driver=23.5.0.24.07
