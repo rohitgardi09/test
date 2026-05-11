@@ -1,3 +1,56 @@
+spring_boot=3.5.8
+dependency_plugin=1.1.7
+
+oracle_driver=23.5.0.24.07
+
+mapstruct=1.5.1.Final
+lombok_mapstruct=0.2.0
+
+commons_lang3=3.18.0
+
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version "${spring_boot}"
+    id 'io.spring.dependency-management' version "${dependency_plugin}"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    implementation "com.oracle.database.jdbc:ojdbc11:${oracle_driver}"
+
+    implementation "org.apache.commons:commons-lang3:${commons_lang3}"
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation "org.mapstruct:mapstruct:${mapstruct}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstruct}"
+
+    implementation "org.projectlombok:lombok-mapstruct-binding:${lombok_mapstruct}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+
+
+
+end 
+
+
+
+
+
 file name - gradle.properties
 version=0.0.1
 spring_boot=3.5.8
