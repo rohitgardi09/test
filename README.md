@@ -1,3 +1,33 @@
+@GetMapping("/test-exception")
+    @TrackException
+    public String testException() {
+
+        MDC.put("MID", "MID123");
+        MDC.put("ORDER_REF", "ORDER123");
+        MDC.put("ATRN", "ATRN123");
+        MDC.put("PAYMODE", "UPI");
+        MDC.put("TRACE_ID", "TRACE123");
+        MDC.put("REQUEST_ID", "REQ123");
+
+        try {
+
+            int x = 10 / 0;
+
+            return "SUCCESS";
+
+        } catch (Exception ex) {
+
+            log.error("Test Exception Occurred", ex);
+
+            throw ex;
+        }
+    }
+
+    ,.......
+
+
+
+
 COMPLETE EXCEPTION TRACKER UTILITY - FINAL COPY CODE
 
 This document contains all final production-ready files for the Exception Tracker Utility. You can copy all code one time from here.
