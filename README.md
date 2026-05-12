@@ -1,3 +1,36 @@
+package com.epay.merchant.controller;
+
+import com.sbi.epay.exceptionTracker.annotation.TrackException;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@Slf4j
+public class TestController {
+
+    @GetMapping("/test-exception")
+    @TrackException
+    public String testException() {
+
+        MDC.put("MID", "MID123");
+        MDC.put("ORDER_REF", "ORDER123");
+        MDC.put("ATRN", "ATRN123");
+        MDC.put("PAYMODE", "UPI");
+        MDC.put("TRACE_ID", "TRACE123");
+        MDC.put("REQUEST_ID", "REQ123");
+
+        log.info("Controller Called");
+
+        int x = 10 / 0;
+
+        return "SUCCESS";
+    }
+}
+
+
+
 -- LIQUIBASE FORMATTED SQL
 -- CHANGESET RohitG :1
 
