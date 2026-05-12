@@ -1,1 +1,674 @@
-.
+COMPLETE EXCEPTION TRACKER UTILITY - FINAL COPY CODE
+
+This document contains all final production-ready files for the Exception Tracker Utility. You can copy all code one time from here.
+
+FINAL COMPLETE EXCEPTION TRACKER CODE
+
+
+---
+
+1. TrackException.java
+
+package com.epay.merchant.annotation;
+
+import java.lang.annotation.*;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface TrackException {
+
+    boolean storeStackTrace() default true;
+
+    boolean rethrow() default true;
+}
+
+
+---
+
+2. ExceptionLog.java
+
+package com.epay.merchant.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "EXCEPTION_LOG")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExceptionLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String serviceName;
+
+    private String className;
+
+    private String methodName;
+
+    private String exceptionType;
+
+    @Lob
+    private String exceptionMessage;
+
+    @Lob
+    private String stackTrace;
+
+    private String mid;
+
+    private String orderRef;
+
+    private String atrn;
+
+    private String paymode;
+
+    private String traceId;
+
+    private String requestId;
+
+    @Lob
+    private String mdcJson;
+
+    private Long createdAt;
+}
+
+
+---
+
+3. ExceptionLogDto.java
+
+package com.epay.merchant.dto;
+
+import lombok.*;
+
+import java.util.Map;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExceptionLogDto {
+
+    private String serviceName;
+
+    private String className;
+
+    private String methodName;
+
+    private String exceptionType;
+
+    private String exceptionMessage;
+
+    private String stackTrace;
+
+    private String mid;
+
+    private String orderRef;
+
+    private String atrn;
+
+    private String paymode;
+
+    private String traceId;
+
+    private String requestId;
+
+    private String mdcJson;
+
+    private Map<String, String> mdcMap;
+
+    private Long createdAt;
+}
+
+
+---
+
+4. ExceptionLogRepository.java
+
+package com.epay.merchant.repository;
+
+import com.epay.merchant.entity.ExceptionLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ExceptionLogRepository
+        extends JpaRepository<ExceptionLog, Long> {
+}
+
+
+---
+
+5. ExceptionLogMapper.java
+
+package com.epay.merchant.mapper;
+
+import com.epay.merchant.dto.ExceptionLogDto;
+import com.epay.merchant.entity.ExceptionLog;
+import org.mapstruct.Builder;
+import org.mapstruct.Mapper;
+
+@Mapper(
+        componentModel = "spring",
+        builder = @Builder(disableBuilder = true)
+)
+public interface ExceptionLogMapper {
+
+    ExceptionLog convertDtoToEntity(
+            ExceptionLogDto dto
+    );
+
+    ExceptionLogDto convertEntityToDto(
+            ExceptionLog entity
+    );
+}
+
+
+---
+
+6. ExceptionLogDao.java
+
+package com.epay.merchant.dao;
+
+import com.epay.merchant.dto.ExceptionLogDto;
+import com.epay.merchant.entity.ExceptionLog;
+import com.epay.merchant.mapper.ExceptionLogMapper;
+import com.epay.merchant.repository.ExceptionLogRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class ExceptionLogDao {
+
+    private final ExceptionLogRepository repository;
+
+    private final ExceptionLogMapper mapper;
+
+    public ExceptionLogDto save(
+            ExceptionLogDto dto
+    ) {
+
+        ExceptionLog entity =
+                mapper.convertDtoToEntity(dto);
+
+        entity = repository.save(entity);
+
+        return mapper.convertEntityToDto(entity);
+    }
+}
+
+
+---
+
+7. AsyncConfig.java
+
+package com.epay.merchant.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.Executor;
+
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean("exceptionExecutor")
+    public Executor exceptionExecutor() {
+
+        ThreadPoolTaskExecutor executor =
+                new ThreadPoolTaskExecutor();
+
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix(
+                "exception-"
+        );
+
+        executor.initialize();
+
+        return executor;
+    }
+}
+
+
+---
+
+8. MDCUtil.java
+
+package com.epay.merchant.util;
+
+import java.util.Map;
+
+public class MDCUtil {
+
+    public static String getIgnoreCase(
+            Map<String, String> map,
+            String... keys
+    ) {
+
+        if (map == null) {
+            return null;
+        }
+
+        for (String key : keys) {
+
+            for (Map.Entry<String, String> entry :
+                    map.entrySet()) {
+
+                if (entry.getKey()
+                        .equalsIgnoreCase(key)) {
+
+                    return entry.getValue();
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+
+---
+
+9. StackTraceUtil.java
+
+package com.epay.merchant.util;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+public class StackTraceUtil {
+
+    public static String getStackTrace(
+            Exception ex
+    ) {
+
+        StringWriter stringWriter =
+                new StringWriter();
+
+        PrintWriter printWriter =
+                new PrintWriter(stringWriter);
+
+        ex.printStackTrace(printWriter);
+
+        return stringWriter.toString();
+    }
+}
+
+
+---
+
+10. ExceptionUtil.java
+
+package com.epay.merchant.util;
+
+public class ExceptionUtil {
+
+    private ExceptionUtil() {
+    }
+
+    public static String getMessage(
+            Exception ex
+    ) {
+
+        return ex.getMessage();
+    }
+}
+
+
+---
+
+11. ExceptionAsyncService.java
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.dao.ExceptionLogDao;
+import com.epay.merchant.dto.ExceptionLogDto;
+import com.epay.merchant.util.MDCUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ExceptionAsyncService {
+
+    private final ExceptionLogDao dao;
+
+    private final ObjectMapper objectMapper;
+
+    @Async("exceptionExecutor")
+    public void store(
+            ExceptionLogDto dto
+    ) {
+
+        try {
+
+            Map<String, String> mdc =
+                    dto.getMdcMap();
+
+            dto.setMid(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "MID"
+                    )
+            );
+
+            dto.setOrderRef(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "ORDER_REF",
+                            "ORDERID"
+                    )
+            );
+
+            dto.setAtrn(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "ATRN"
+                    )
+            );
+
+            dto.setPaymode(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "PAYMODE"
+                    )
+            );
+
+            dto.setTraceId(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "TRACE_ID"
+                    )
+            );
+
+            dto.setRequestId(
+                    MDCUtil.getIgnoreCase(
+                            mdc,
+                            "REQUEST_ID"
+                    )
+            );
+
+            dto.setMdcJson(
+                    objectMapper.writeValueAsString(mdc)
+            );
+
+            dao.save(dto);
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Failed to store exception",
+                    ex
+            );
+        }
+    }
+}
+
+
+---
+
+12. ExceptionLogService.java
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.dto.ExceptionLogDto;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionLogService {
+
+    private final ExceptionAsyncService
+            asyncService;
+
+    public void save(
+            ExceptionLogDto dto
+    ) {
+
+        asyncService.store(dto);
+    }
+}
+
+
+---
+
+13. ExceptionTrackerAspect.java
+
+package com.epay.merchant.aspect;
+
+import com.epay.merchant.annotation.TrackException;
+import com.epay.merchant.dto.ExceptionLogDto;
+import com.epay.merchant.service.ExceptionAsyncService;
+import com.epay.merchant.util.StackTraceUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.Map;
+
+@Aspect
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ExceptionTrackerAspect {
+
+    private final ExceptionAsyncService
+            asyncService;
+
+    @Value("${spring.application.name}")
+    private String serviceName;
+
+    @Around("@annotation(trackException)")
+    public Object trackException(
+            ProceedingJoinPoint joinPoint,
+            TrackException trackException
+    ) throws Throwable {
+
+        try {
+
+            return joinPoint.proceed();
+
+        } catch (Exception ex) {
+
+            MethodSignature signature =
+                    (MethodSignature)
+                            joinPoint.getSignature();
+
+            Map<String, String> mdc =
+                    MDC.getCopyOfContextMap();
+
+            ExceptionLogDto dto =
+                    ExceptionLogDto.builder()
+                            .serviceName(serviceName)
+                            .className(
+                                    signature
+                                            .getDeclaringTypeName()
+                            )
+                            .methodName(
+                                    signature
+                                            .getMethod()
+                                            .getName()
+                            )
+                            .exceptionType(
+                                    ex.getClass()
+                                            .getName()
+                            )
+                            .exceptionMessage(
+                                    ex.getMessage()
+                            )
+                            .stackTrace(
+                                    trackException
+                                            .storeStackTrace()
+                                            ? StackTraceUtil
+                                            .getStackTrace(ex)
+                                            : null
+                            )
+                            .mdcMap(mdc)
+                            .createdAt(
+                                    Instant.now()
+                                            .toEpochMilli()
+                            )
+                            .build();
+
+            asyncService.store(dto);
+
+            if (trackException.rethrow()) {
+                throw ex;
+            }
+
+            return null;
+        }
+    }
+}
+
+
+---
+
+14. PaymentService.java
+
+package com.epay.merchant.service;
+
+import com.epay.merchant.annotation.TrackException;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
+
+@Service
+@Slf4j
+public class PaymentService {
+
+    @TrackException
+    public void processPayment() {
+
+        MDC.put("MID", "MID123");
+        MDC.put("ORDER_REF", "ORD001");
+        MDC.put("TRACE_ID", "TRACE123");
+
+        int a = 10 / 0;
+    }
+}
+
+
+---
+
+15. EXCEPTION_LOG TABLE
+
+CREATE TABLE EXCEPTION_LOG (
+
+    ID NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+
+    SERVICE_NAME VARCHAR2(100),
+
+    CLASS_NAME VARCHAR2(500),
+
+    METHOD_NAME VARCHAR2(500),
+
+    EXCEPTION_TYPE VARCHAR2(500),
+
+    EXCEPTION_MESSAGE CLOB,
+
+    STACK_TRACE CLOB,
+
+    MID VARCHAR2(100),
+
+    ORDER_REF VARCHAR2(200),
+
+    ATRN VARCHAR2(200),
+
+    PAYMODE VARCHAR2(100),
+
+    TRACE_ID VARCHAR2(200),
+
+    REQUEST_ID VARCHAR2(200),
+
+    MDC_JSON CLOB,
+
+    CREATED_AT NUMBER
+);
+
+
+---
+
+16. application.yml
+
+spring:
+  application:
+    name: epay-merchant-service
+
+
+---
+
+17. Main Application
+
+package com.epay.merchant;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@SpringBootApplication(
+    scanBasePackages = {
+        "com.epay.merchant"
+    }
+)
+@EnableJpaRepositories(basePackages = {
+    "com.epay.merchant.repository"
+})
+@EntityScan(basePackages = {
+    "com.epay.merchant.entity"
+})
+public class EpayMerchantApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(EpayMerchantApplication.class, args);
+    }
+}
+
+
+---
+
+18. Final Flow
+
+Controller/Service
+        ↓
+@TrackException
+        ↓
+Aspect
+        ↓
+Async Service
+        ↓
+DAO
+        ↓
+Mapper
+        ↓
+Repository
+        ↓
+Oracle DB
