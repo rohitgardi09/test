@@ -1,4 +1,37 @@
+package com.sbi.epay.exceptionTracker.controller;
 
+import com.sbi.epay.exceptionTracker.annotation.TrackException;
+
+import org.slf4j.MDC;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/test")
+public class TestController {
+
+    @GetMapping
+    @TrackException
+    public String test() {
+
+        MDC.put("MID", "MID123");
+
+        MDC.put("ORDER_REF", "ORD123");
+
+        MDC.put("ATRN", "ATRN123");
+
+        MDC.put("PAYMODE", "UPI");
+
+        MDC.put("CORRELATION_ID", "CORR123");
+
+        MDC.put("REMARK", "Test Exception");
+
+        throw new RuntimeException(
+                "Test Exception Generated");
+    }
+}
 
 
 
