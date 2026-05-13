@@ -1,3 +1,22 @@
+Class/File	Description
+
+TrackException	Custom annotation used to enable exception tracking on methods.
+ExceptionTrackerAspect	AOP aspect that intercepts methods annotated with @TrackException and captures exception details.
+AsyncConfig	Configuration class used to enable asynchronous processing and define async executor thread pool.
+ExceptionLogDao	DAO layer used to save exception data into database through repository.
+ExceptionLogDto	DTO class used to transfer exception details between layers.
+ExceptionLog	Entity class mapped with EXCEPTION_LOG Oracle table.
+ExceptionLogMapper	Mapper class used to convert DTO to Entity and Entity to DTO.
+ExceptionLogRepository	JPA repository interface used for database operations.
+ExceptionAsyncService	Async service used to store exception logs in background thread.
+ExceptionLogService	Main service layer used for exception log processing logic.
+ExceptionUtil	Utility class containing common exception helper methods.
+MDCUtil	Utility class used to fetch MDC values like MID, TRACE_ID, ORDER_REF etc.
+StackTraceUtil	Utility class used to generate formatted stack trace string from exception.
+build.gradle	Gradle build configuration file containing dependencies and plugins.
+
+
+
 package com.epay.merchant.controller;
 
 import com.sbi.epay.exceptionTracker.annotation.TrackException;
