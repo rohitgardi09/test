@@ -1,3 +1,31 @@
+
+@PostMapping("/test")
+@TrackException
+public String testException() {
+
+    MDC.put("MID", "MID12345");
+
+    MDC.put("ORDER_REF", "ORDER12345");
+
+    MDC.put("ATRN", "ATRN12345");
+
+    MDC.put("PAYMODE", "UPI");
+
+    MDC.put("CORRELATION_ID", "CORR12345");
+
+    MDC.put("REMARK", "Test Exception Remark");
+
+    throw new RuntimeException(
+            "Test Exception Generated");
+}
+
+
+
+
+
+
+.......
+
 package com.sbi.epay.exceptionTracker.controller;
 
 import com.sbi.epay.exceptionTracker.annotation.TrackException;
