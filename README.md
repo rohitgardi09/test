@@ -1,4 +1,17 @@
+/**
+ * Class Name: StackTraceUtil
+ * Description: Utility class used to generate formatted stack trace string from exception.
+ * <p>
+ * Author: V1024113(Rohit Gardi)
+ * <p>
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ * <p>
+ * Version:1.0
+ **/
 
+
+   
 @PostMapping("/test")
 @TrackException
 public String testException() {
