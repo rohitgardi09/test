@@ -1,1 +1,638 @@
-.
+COMPLETE FINAL EXCEPTION TRACKER FILES
+
+src/main/java/com/sbi/epay/exceptionTracker
+
+├── annotation
+│   └── TrackException.java
+│
+├── aspect
+│   └── ExceptionTrackerAspect.java
+│
+├── config
+│   └── QueueConfig.java
+│
+├── dao
+│   └── ExceptionLogDao.java
+│
+├── dto
+│   └── ExceptionLogDto.java
+│
+├── entity
+│   └── ExceptionLog.java
+│
+├── mapper
+│   └── ExceptionLogMapper.java
+│
+├── repository
+│   └── ExceptionLogRepository.java
+│
+├── service
+│   ├── ExceptionQueueService.java
+│   └── ExceptionConsumerService.java
+│
+└── util
+    ├── ExceptionUtil.java
+    ├── MDCUtil.java
+    └── StackTraceUtil.java
+
+
+========================================================
+TrackException.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.annotation;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface TrackException {
+
+    boolean storeStackTrace() default true;
+
+    boolean rethrow() default true;
+}
+
+
+========================================================
+QueueConfig.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.config;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+@Configuration
+public class QueueConfig {
+
+    @Bean
+    public BlockingQueue<ExceptionLogDto> exceptionQueue() {
+
+        return new LinkedBlockingQueue<>(10000);
+    }
+}
+
+
+========================================================
+ExceptionLogDto.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.Map;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExceptionLogDto {
+
+    private String serviceName;
+
+    private String className;
+
+    private String methodName;
+
+    private String exceptionType;
+
+    private String exceptionMessage;
+
+    private String stackTrace;
+
+    private String merchantId;
+
+    private String orderRefNumber;
+
+    private String atrnNum;
+
+    private String payMode;
+
+    private String correlationId;
+
+    private String remark;
+
+    private String mdcJson;
+
+    private String createdBy;
+
+    private Long createdDate;
+
+    private Map<String, String> mdcMap;
+}
+
+
+========================================================
+ExceptionLog.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "EXCEPTION_LOG")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExceptionLog {
+
+    @Id
+    private String correlationId;
+
+    private String serviceName;
+
+    private String className;
+
+    private String methodName;
+
+    private String exceptionType;
+
+    @Lob
+    private String exceptionMessage;
+
+    @Lob
+    private String stackTrace;
+
+    private String merchantId;
+
+    private String orderRefNumber;
+
+    private String atrnNum;
+
+    private String payMode;
+
+    private String remark;
+
+    @Lob
+    private String mdcJson;
+
+    private String createdBy;
+
+    private Long createdDate;
+}
+
+
+========================================================
+ExceptionLogRepository.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.repository;
+
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ExceptionLogRepository
+        extends JpaRepository<ExceptionLog, String> {
+}
+
+
+========================================================
+ExceptionLogDao.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.dao;
+
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+import com.sbi.epay.exceptionTracker.repository.ExceptionLogRepository;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class ExceptionLogDao {
+
+    private final ExceptionLogRepository repository;
+
+    public void saveAll(
+            List<ExceptionLog> logs) {
+
+        repository.saveAll(logs);
+    }
+}
+
+
+========================================================
+ExceptionLogMapper.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.mapper;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class ExceptionLogMapper {
+
+    public ExceptionLog toEntity(
+            ExceptionLogDto dto) {
+
+        return ExceptionLog.builder()
+                .correlationId(dto.getCorrelationId())
+                .serviceName(dto.getServiceName())
+                .className(dto.getClassName())
+                .methodName(dto.getMethodName())
+                .exceptionType(dto.getExceptionType())
+                .exceptionMessage(dto.getExceptionMessage())
+                .stackTrace(dto.getStackTrace())
+                .merchantId(dto.getMerchantId())
+                .orderRefNumber(dto.getOrderRefNumber())
+                .atrnNum(dto.getAtrnNum())
+                .payMode(dto.getPayMode())
+                .remark(dto.getRemark())
+                .mdcJson(dto.getMdcJson())
+                .createdBy(dto.getCreatedBy())
+                .createdDate(dto.getCreatedDate())
+                .build();
+    }
+}
+
+
+========================================================
+ExceptionQueueService.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.service;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Service;
+
+import java.util.concurrent.BlockingQueue;
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionQueueService {
+
+    private final BlockingQueue<ExceptionLogDto>
+            exceptionQueue;
+
+    public void add(
+            ExceptionLogDto dto) {
+
+        exceptionQueue.offer(dto);
+    }
+}
+
+
+========================================================
+ExceptionConsumerService.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.sbi.epay.exceptionTracker.dao.ExceptionLogDao;
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+import com.sbi.epay.exceptionTracker.mapper.ExceptionLogMapper;
+import com.sbi.epay.exceptionTracker.util.MDCUtil;
+
+import jakarta.annotation.PostConstruct;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ExceptionConsumerService {
+
+    private final BlockingQueue<ExceptionLogDto>
+            exceptionQueue;
+
+    private final ExceptionLogDao dao;
+
+    private final ExceptionLogMapper mapper;
+
+    private final ObjectMapper objectMapper;
+
+    @PostConstruct
+    public void init() {
+
+        Thread thread =
+                new Thread(this::consume);
+
+        thread.setDaemon(true);
+
+        thread.start();
+    }
+
+    public void consume() {
+
+        while (true) {
+
+            try {
+
+                List<ExceptionLog> logs =
+                        new ArrayList<>();
+
+                ExceptionLogDto dto =
+                        exceptionQueue.take();
+
+                prepare(dto);
+
+                logs.add(
+                        mapper.toEntity(dto));
+
+                List<ExceptionLogDto> temp =
+                        new ArrayList<>();
+
+                exceptionQueue.drainTo(
+                        temp,
+                        50);
+
+                for (ExceptionLogDto data : temp) {
+
+                    prepare(data);
+
+                    logs.add(
+                            mapper.toEntity(data));
+                }
+
+                dao.saveAll(logs);
+
+            } catch (Exception ex) {
+
+                log.error(
+                        "Error while saving exception logs",
+                        ex);
+            }
+        }
+    }
+
+    private void prepare(
+            ExceptionLogDto dto)
+            throws Exception {
+
+        Map<String, String> mdc =
+                dto.getMdcMap();
+
+        dto.setMerchantId(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "MID"));
+
+        dto.setOrderRefNumber(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "ORDER_REF"));
+
+        dto.setAtrnNum(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "ATRN"));
+
+        dto.setPayMode(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "PAYMODE"));
+
+        dto.setCorrelationId(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "CORRELATION_ID"));
+
+        dto.setRemark(
+                MDCUtil.getIgnoreCase(
+                        mdc,
+                        "REMARK"));
+
+        dto.setCreatedBy("SYSTEM");
+
+        dto.setCreatedDate(
+                System.currentTimeMillis());
+
+        dto.setMdcJson(
+                objectMapper
+                        .writeValueAsString(mdc));
+    }
+}
+
+
+========================================================
+ExceptionTrackerAspect.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.aspect;
+
+import com.sbi.epay.exceptionTracker.annotation.TrackException;
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.service.ExceptionQueueService;
+import com.sbi.epay.exceptionTracker.util.StackTraceUtil;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+
+import org.slf4j.MDC;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+@Aspect
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ExceptionTrackerAspect {
+
+    private final ExceptionQueueService queueService;
+
+    @Value("${spring.application.name}")
+    private String serviceName;
+
+    @Around("@annotation(trackException)")
+    public Object trackException(
+            ProceedingJoinPoint joinPoint,
+            TrackException trackException)
+            throws Throwable {
+
+        try {
+
+            return joinPoint.proceed();
+
+        } catch (Exception ex) {
+
+            MethodSignature signature =
+                    (MethodSignature)
+                            joinPoint.getSignature();
+
+            Map<String, String> mdc =
+                    MDC.getCopyOfContextMap();
+
+            ExceptionLogDto dto =
+                    ExceptionLogDto.builder()
+                            .serviceName(serviceName)
+                            .className(
+                                    signature
+                                            .getDeclaringTypeName())
+                            .methodName(
+                                    signature
+                                            .getMethod()
+                                            .getName())
+                            .exceptionType(
+                                    ex.getClass().getName())
+                            .exceptionMessage(
+                                    ex.getMessage())
+                            .stackTrace(
+                                    trackException.storeStackTrace()
+                                            ? StackTraceUtil
+                                            .getShortStackTrace(ex)
+                                            : null)
+                            .mdcMap(mdc)
+                            .build();
+
+            queueService.add(dto);
+
+            if (trackException.rethrow()) {
+
+                throw ex;
+            }
+
+            return null;
+        }
+    }
+}
+
+
+========================================================
+ExceptionUtil.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.util;
+
+public class ExceptionUtil {
+
+    public static String getMessage(
+            Throwable ex) {
+
+        if (ex == null) {
+
+            return null;
+        }
+
+        return ex.getMessage();
+    }
+}
+
+
+========================================================
+MDCUtil.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.util;
+
+import java.util.Map;
+
+public class MDCUtil {
+
+    public static String getIgnoreCase(
+            Map<String, String> map,
+            String... keys) {
+
+        if (map == null) {
+
+            return null;
+        }
+
+        for (String key : keys) {
+
+            for (Map.Entry<String, String>
+                    entry : map.entrySet()) {
+
+                if (entry.getKey()
+                        .equalsIgnoreCase(key)) {
+
+                    return entry.getValue();
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+
+========================================================
+StackTraceUtil.java
+========================================================
+
+package com.sbi.epay.exceptionTracker.util;
+
+public class StackTraceUtil {
+
+    public static String getShortStackTrace(
+            Throwable ex) {
+
+        StringBuilder sb =
+                new StringBuilder();
+
+        sb.append(ex.getMessage())
+                .append("\n");
+
+        StackTraceElement[] elements =
+                ex.getStackTrace();
+
+        int limit =
+                Math.min(elements.length, 10);
+
+        for (int i = 0; i < limit; i++) {
+
+            sb.append(elements[i].toString())
+                    .append("\n");
+        }
+
+        return sb.toString();
+    }
+}
