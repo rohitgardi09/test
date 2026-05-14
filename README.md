@@ -1,3 +1,12 @@
+git config --global user.name
+git config --global user.email
+
+git config --global user.name "Rohit Gardi"
+git config --global user.email "tuzamail@example.com"
+
+
+
+
 Exception Tracker - Complete Files
 src/main/java/com/sbi/epay/exceptionTracker
 │
