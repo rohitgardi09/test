@@ -1,3 +1,96 @@
+
+package com.sbi.epay.exceptionTracker.mapper;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+/**
+ * Class Name: ExceptionLogMapper
+ * Description: Mapper interface used to convert ExceptionLogDto into ExceptionLog entity.
+ * Author: V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ * <p>
+ * Version:1.0
+ **/
+@Mapper(componentModel = "spring")
+public interface ExceptionLogMapper {
+
+    // Ignore id because database generates it automatically
+    @Mapping(
+            target = "id",
+            ignore = true)
+    ExceptionLog toEntity(
+            ExceptionLogDto dto);
+}
+
+========================================================
+
+package com.sbi.epay.exceptionTracker.controller;
+
+import com.sbi.epay.exceptionTracker.annotation.TrackException;
+
+import org.slf4j.MDC;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Class Name: TestController
+ * Description: Test controller used to validate exception tracking utility flow.
+ * Author: V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ * <p>
+ * Version:1.0
+ **/
+@RestController
+public class TestController {
+
+    @GetMapping("/test-exception")
+    @TrackException
+    public String testException() {
+
+        // Adding sample MDC values for testing
+        MDC.put(
+                "MID",
+                "MID12345");
+
+        MDC.put(
+                "ORDER_REF",
+                "ORD12345");
+
+        MDC.put(
+                "ATRN",
+                "ATRN12345");
+
+        MDC.put(
+                "PAYMODE",
+                "UPI");
+
+        MDC.put(
+                "CORRELATION_ID",
+                "CORR12345");
+
+        MDC.put(
+                "REMARK",
+                "Test Exception");
+
+        MDC.put(
+                "CREATED_BY",
+                "ROHIT");
+
+        // Test exception
+        throw new RuntimeException(
+                "Test exception generated");
+    }
+}
+
+
+
 git config --global user.name
 git config --global user.email
 
