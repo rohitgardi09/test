@@ -1,3 +1,72 @@
+package com.sbi.epay.exceptionTracker.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Class Name : ExceptionPartitionCleanupScheduler
+ * Description : Scheduler used to drop old Oracle partitions.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * ALL rights reserved
+ *
+ * <p>
+ * Version:1.0
+ **/
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ExceptionPartitionCleanupScheduler {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    /**
+     * Runs daily at 2 AM
+     * Drops partition older than 7 days
+     */
+    @Scheduled(cron = "0 0 2 * * ?")
+    public void dropOldPartition() {
+
+        try {
+
+            String partitionDate =
+                    LocalDate.now()
+                            .minusDays(7)
+                            .format(
+                                    DateTimeFormatter
+                                            .ofPattern("yyyy-MM-dd"));
+
+            String sql = String.format("""
+                    ALTER TABLE EXCEPTION_LOG
+                    DROP PARTITION FOR (
+                        TO_DATE('%s', 'YYYY-MM-DD')
+                    )
+                    """, partitionDate);
+
+            jdbcTemplate.execute(sql);
+
+            log.info(
+                    "Dropped partition for date : {}",
+                    partitionDate);
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Error while dropping old partition",
+                    ex);
+        }
+    }
+}
+
+
 -- =====================================================
 -- TABLE : EXCEPTION_LOG
 -- DESCRIPTION : Daily partition based exception log table
