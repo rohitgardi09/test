@@ -1,94 +1,122 @@
-// ======================================================
-// FILE : Constant.java
-// PACKAGE : com.sbi.epay.exceptionTracker.util
-// ======================================================
-
 package com.sbi.epay.exceptionTracker.util;
 
-public final class Constant {
+import lombok.experimental.UtilityClass;
 
-    private Constant() {
-    }
+/**
+ * Class Name: ErrorConstant
+ * Description: Utility class used to store application constants.
+ * Author: V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * ALL rights reserved
+ *
+ * <p>
+ * Version:1.0
+ **/
+@UtilityClass
+public class ErrorConstant {
 
+    public static final String MID = "MID";
+    public static final String ORDER_REF = "ORDER_REF";
+    public static final String ATRN = "ATRN";
+    public static final String PAYMODE = "PAYMODE";
+    public static final String CORRELATION_ID = "CORRELATION_ID";
+    public static final String REMARK = "REMARK";
+    public static final String CREATED_BY = "CREATED_BY";
+
+    public static final String DEFAULT_EXCEPTION_MESSAGE =
+            "Exception message is not available";
+
+    public static final String DEFAULT_MDC_VALUE =
+            "MDC value is not available";
+
+    public static final int STACK_TRACE_LIMIT = 10;
+    public static final int QUEUE_SIZE = 10000;
+    public static final int BATCH_SIZE = 50;
     public static final int EXCEPTION_LOG_RETENTION_DAYS = 7;
 }
 
+package com.sbi.epay.exceptionTracker.util;
 
-// ======================================================
-// FILE : ExceptionCleanupSchedulerRepository.java
-// PACKAGE : com.sbi.epay.exceptionTracker.repository
-// ======================================================
-
-package com.sbi.epay.exceptionTracker.repository;
-
-import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.time.LocalDateTime;
-
-@Repository
-public interface ExceptionCleanupSchedulerRepository
-        extends JpaRepository<ExceptionLog, Long> {
-
-    int deleteByCreatedDateBefore(LocalDateTime cutoffDate);
-}
-
-
-// ======================================================
-// FILE : ExceptionCleanupScheduler.java
-// PACKAGE : com.sbi.epay.exceptionTracker.scheduler
-// ======================================================
-
-package com.sbi.epay.exceptionTracker.scheduler;
-
-import com.sbi.epay.exceptionTracker.repository.ExceptionCleanupSchedulerRepository;
-import com.sbi.epay.exceptionTracker.util.Constant;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
+import lombok.experimental.UtilityClass;
 
 /**
- * Class Name : ExceptionCleanupScheduler
- * Description : Scheduler used to delete old exception logs from database.
- * Author : V1024113(Rohit Gardi)
+ * Class Name: ExceptionUtil
+ * Description: Utility class used to extract exception message safely.
+ * Author: V1024113(Rohit Gardi)
  * Copyright (c) 2025 [State Bank of India]
- * All rights reserved
+ * ALL rights reserved
  *
+ * <p>
  * Version:1.0
- */
-
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class ExceptionCleanupScheduler {
-
-    private final ExceptionCleanupSchedulerRepository repository;
+ **/
+@UtilityClass
+public class ExceptionUtil {
 
     /**
-     * Runs every day at 2 AM
-     * Deletes records older than configured retention days
+     * Safely fetches exception message.
+     *
+     * @param ex exception object
+     * @return exception message
      */
-    @Scheduled(cron = "0 0 2 * * ?")
-    public void deleteOldExceptionLogs() {
+    public static String getMessage(Throwable ex) {
 
-        log.info("Exception cleanup scheduler started");
+        if (ex == null) {
+            return ErrorConstant.DEFAULT_EXCEPTION_MESSAGE;
+        }
 
-        LocalDateTime cutoffDate =
-                LocalDateTime.now()
-                        .minusDays(Constant.EXCEPTION_LOG_RETENTION_DAYS);
+        return ex.getMessage() != null
+                ? ex.getMessage()
+                : ErrorConstant.DEFAULT_EXCEPTION_MESSAGE;
+    }
+}
 
-        int deletedCount =
-                repository.deleteByCreatedDateBefore(cutoffDate);
+package com.sbi.epay.exceptionTracker.util;
 
-        log.info("Deleted exception logs count : {}", deletedCount);
+import lombok.experimental.UtilityClass;
 
-        log.info("Exception cleanup scheduler completed");
+import java.util.Map;
+
+/**
+ * Class Name: MDCUtil
+ * Description: Utility class used to fetch MDC values safely.
+ * Author: V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * ALL rights reserved
+ *
+ * <p>
+ * Version:1.0
+ **/
+@UtilityClass
+public class MDCUtil {
+
+    /**
+     * Fetches MDC value ignoring key case.
+     *
+     * @param map  MDC map
+     * @param keys possible keys
+     * @return MDC value
+     */
+    public static String getIgnoreCase(
+            Map<String, String> map,
+            String... keys) {
+
+        if (map == null) {
+            return ErrorConstant.DEFAULT_MDC_VALUE;
+        }
+
+        for (String key : keys) {
+
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+
+                if (entry.getKey().equalsIgnoreCase(key)) {
+
+                    return entry.getValue() != null
+                            ? entry.getValue()
+                            : ErrorConstant.DEFAULT_MDC_VALUE;
+                }
+            }
+        }
+
+        return ErrorConstant.DEFAULT_MDC_VALUE;
     }
 }
