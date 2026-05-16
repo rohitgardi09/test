@@ -1,3 +1,71 @@
+// FILE : ExceptionTestController.java
+
+package com.sbi.epay.exceptionTracker.controller;
+
+import com.sbi.epay.exceptionTracker.annotation.TrackException;
+
+import org.slf4j.MDC;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
+
+/**
+ * Class Name: ExceptionTestController
+ * Description: Test controller used to generate exceptions for testing.
+ * Author: V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ **/
+
+@RestController
+public class ExceptionTestController {
+
+    /**
+     * Test API to generate runtime exception.
+     */
+    @TrackException
+    @GetMapping("/test/exception")
+    public String testException() {
+
+        MDC.put(
+                "MID",
+                UUID.randomUUID().toString());
+
+        MDC.put(
+                "ORDER_REF",
+                UUID.randomUUID().toString());
+
+        MDC.put(
+                "ATRN",
+                UUID.randomUUID().toString());
+
+        MDC.put(
+                "PAYMODE",
+                "UPI");
+
+        MDC.put(
+                "CORRELATION_ID",
+                UUID.randomUUID().toString());
+
+        MDC.put(
+                "REMARK",
+                "Exception tracker testing");
+
+        MDC.put(
+                "CREATED_BY",
+                "SYSTEM");
+
+        throw new RuntimeException(
+                "Test exception generated successfully");
+    }
+}
+
+
+
 // FILE : ErrorConstant.java
 
 package com.sbi.epay.exceptionTracker.util;
