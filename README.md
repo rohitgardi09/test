@@ -1,3 +1,30 @@
+INSERT INTO EXCEPTION_LOG (
+
+    SERVICE_NAME,
+    CLASS_NAME,
+    METHOD_NAME,
+    EXCEPTION_TYPE,
+    EXCEPTION_MESSAGE,
+    STACK_TRACE,
+    CREATED_DATE
+
+)
+VALUES (
+
+    'TEST_SERVICE',
+    'TEST_CLASS',
+    'TEST_METHOD',
+    'java.lang.RuntimeException',
+    'Test Exception',
+    'Test Stack Trace',
+    1746000000000
+
+);
+
+COMMIT;
+
+
+
 PARTITION BY RANGE (CREATED_DATE)
 INTERVAL (86400000)
 (
