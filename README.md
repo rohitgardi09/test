@@ -1,3 +1,404 @@
+BULK SAVE LOGIC - FINAL FILE CHANGES
+
+CHANGED FILES
+
+1. ExceptionQueueService.java
+2. ExceptionTrackerAspect.java
+3. ErrorConstant.java
+
+---
+
+NEW FILES
+
+1. ExceptionBufferedRepository.java
+2. ExceptionTaskExecutorConfig.java
+
+---
+
+REMOVE FILES
+
+1. ExceptionConsumerService.java
+2. QueueConfig.java
+
+=============================================================================
+
+// FILE : ExceptionTaskExecutorConfig.java
+// NEW FILE
+
+package com.sbi.epay.exceptionTracker.config;
+
+import com.sbi.epay.exceptionTracker.util.ErrorConstant;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+/**
+
+* Class Name : ExceptionTaskExecutorConfig
+* Description : Configuration class used to create task executor.
+* Author : V1024113(Rohit Gardi)
+* Copyright (c) 2025 [State Bank of India]
+* All rights reserved
+* 
+* Version:1.0
+  */
+
+@Configuration
+public class ExceptionTaskExecutorConfig {
+
+@Bean(name = "exceptionTaskExecutor")
+public TaskExecutor exceptionTaskExecutor() {
+
+    ThreadPoolTaskExecutor executor =
+            new ThreadPoolTaskExecutor();
+
+    executor.setCorePoolSize(5);
+
+    executor.setMaxPoolSize(10);
+
+    executor.setQueueCapacity(
+            ErrorConstant.QUEUE_SIZE
+    );
+
+    executor.setThreadNamePrefix(
+            "exceptionTaskExecutor-"
+    );
+
+    executor.initialize();
+
+    return executor;
+}
+
+}
+
+=============================================================================
+
+// FILE : ExceptionBufferedRepository.java
+// NEW FILE
+
+package com.sbi.epay.exceptionTracker.repository;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+import com.sbi.epay.exceptionTracker.mapper.ExceptionLogMapper;
+import com.sbi.epay.exceptionTracker.util.ErrorConstant;
+import com.sbi.epay.exceptionTracker.util.MDCUtil;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import jakarta.annotation.PostConstruct;
+
+import lombok.RequiredArgsConstructor;
+
+import org.apache.commons.lang3.ObjectUtils;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+
+* Class Name : ExceptionBufferedRepository
+* Description : Buffered repository used for asynchronous
+* batch processing of exception logs.
+* Author : V1024113(Rohit Gardi)
+* Copyright (c) 2025 [State Bank of India]
+* All rights reserved
+* 
+* Version:1.0
+  */
+
+@Component
+@RequiredArgsConstructor
+public class ExceptionBufferedRepository {
+
+private static final LoggerUtility logger =
+        LoggerFactoryUtility.getLogger(
+                ExceptionBufferedRepository.class);
+
+private final ExceptionLogRepository repository;
+
+private final ExceptionLogMapper mapper;
+
+private final ObjectMapper objectMapper;
+
+@Qualifier("exceptionTaskExecutor")
+private final TaskExecutor taskExecutor;
+
+private final BlockingQueue<ExceptionLogDto> queue =
+        new LinkedBlockingQueue<>(
+                ErrorConstant.QUEUE_SIZE
+        );
+
+/**
+ * Starts async batch consumer thread.
+ */
+@PostConstruct
+public void init() {
+
+    taskExecutor.execute(this::saveAndFlush);
+}
+
+/**
+ * Adds exception log into queue.
+ */
+public void buffer(ExceptionLogDto dto) {
+
+    if (!queue.offer(dto)) {
+
+        logger.error(
+                "Error while buffering exception log, queue full"
+        );
+    }
+}
+
+/**
+ * Consumes queue data and performs bulk save.
+ */
+private void saveAndFlush() {
+
+    while (true) {
+
+        try {
+
+            List<ExceptionLog> batch =
+                    new ArrayList<>();
+
+            ExceptionLogDto first =
+                    queue.poll(
+                            1,
+                            TimeUnit.SECONDS
+                    );
+
+            if (ObjectUtils.isNotEmpty(first)) {
+
+                prepare(first);
+
+                batch.add(
+                        mapper.toEntity(first)
+                );
+
+                List<ExceptionLogDto> temp =
+                        new ArrayList<>();
+
+                queue.drainTo(
+                        temp,
+                        ErrorConstant.BATCH_SIZE
+                );
+
+                for (ExceptionLogDto dto : temp) {
+
+                    prepare(dto);
+
+                    batch.add(
+                            mapper.toEntity(dto)
+                    );
+                }
+
+                repository.saveAll(batch);
+
+                logger.info(
+                        "Exception log batch saved successfully, batch size : {}",
+                        batch.size()
+                );
+            }
+
+        } catch (Exception ex) {
+
+            logger.error(
+                    "Error while saving exception log batch",
+                    ex
+            );
+        }
+    }
+}
+
+/**
+ * Prepares DTO before database save.
+ */
+private void prepare(ExceptionLogDto dto)
+        throws Exception {
+
+    Map<String, String> mdc =
+            dto.getMdcMap();
+
+    dto.setMerchantId(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.MID
+            )
+    );
+
+    dto.setOrderRefNumber(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.ORDER_REF
+            )
+    );
+
+    dto.setAtrnNum(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.ATRN
+            )
+    );
+
+    dto.setPayMode(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.PAYMODE
+            )
+    );
+
+    dto.setCorrelationId(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.CORRELATION_ID
+            )
+    );
+
+    dto.setRemark(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.REMARK
+            )
+    );
+
+    dto.setCreatedBy(
+            MDCUtil.getIgnoreCase(
+                    mdc,
+                    ErrorConstant.CREATED_BY
+            )
+    );
+
+    dto.setCreatedDate(
+            System.currentTimeMillis()
+    );
+
+    dto.setMdcJson(
+            objectMapper.writeValueAsString(mdc)
+    );
+}
+
+}
+
+=============================================================================
+
+// FILE : ExceptionQueueService.java
+// CHANGED FILE
+
+package com.sbi.epay.exceptionTracker.service;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.repository.ExceptionBufferedRepository;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Service;
+
+/**
+
+* Class Name : ExceptionQueueService
+* Description : Service class used to buffer exception logs.
+* Author : V1024113(Rohit Gardi)
+* Copyright (c) 2025 [State Bank of India]
+* All rights reserved
+* 
+* Version:1.0
+  */
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionQueueService {
+
+private final ExceptionBufferedRepository
+        exceptionBufferedRepository;
+
+/**
+ * Adds exception log into buffered repository.
+ */
+public void add(ExceptionLogDto dto) {
+
+    exceptionBufferedRepository.buffer(dto);
+}
+
+}
+
+=============================================================================
+
+// FILE : ErrorConstant.java
+// CHANGED FILE
+
+package com.sbi.epay.exceptionTracker.util;
+
+import lombok.experimental.UtilityClass;
+
+/**
+
+* Class Name : ErrorConstant
+* Description : Utility class used to store exception tracker constants.
+* Author : V1024113(Rohit Gardi)
+* Copyright (c) 2025 [State Bank of India]
+* All rights reserved
+* 
+* Version:1.0
+  */
+
+@UtilityClass
+public class ErrorConstant {
+
+public static final String MID =
+        "MID";
+
+public static final String ORDER_REF =
+        "ORDER_REF";
+
+public static final String ATRN =
+        "ATRN";
+
+public static final String PAYMODE =
+        "PAYMODE";
+
+public static final String CORRELATION_ID =
+        "CORRELATION_ID";
+
+public static final String REMARK =
+        "REMARK";
+
+public static final String CREATED_BY =
+        "CREATED_BY";
+
+public static final int QUEUE_SIZE =
+        10000;
+
+public static final int BATCH_SIZE =
+        50;
+
+public static final int EXCEPTION_LOG_RETENTION_DAYS =
+        7;
+
+public static final String DEFAULT_EXCEPTION_MESSAGE =
+        "Exception message is not available";
+
+public static final String DEFAULT_MDC_VALUE =
+        "MDC value is not available";
+
+}
+
+#############################################
+
 package com.epay.operations.repository.event.audit;
 
 import com.epay.operations.config.OpsConfig;
