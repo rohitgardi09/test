@@ -1,3 +1,16 @@
+-- CHANGESET RohitG:1.1
+
+ALTER TABLE EXCEPTION_LOG
+PARTITION BY RANGE (CREATED_DATE)
+INTERVAL (86400000)
+(
+    PARTITION P_INITIAL VALUES LESS THAN (0)
+);
+
+
+
+
+
 // FILE : ExceptionTestController.java
 
 package com.sbi.epay.exceptionTracker.controller;
