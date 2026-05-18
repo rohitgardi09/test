@@ -1,100 +1,103 @@
-// FILE : ExceptionPartitionCleanupDao.java
+package com.epay.operations.repository.event.audit;
 
-package com.sbi.epay.exceptionTracker.dao;
-
-import com.sbi.epay.exceptionTracker.query.ExceptionTrackerQuery;
-
+import com.epay.operations.config.OpsConfig;
+import com.epay.operations.entity.event.audit.BaseEvent;
 import com.sbi.epay.logging.utility.LoggerFactoryUtility;
 import com.sbi.epay.logging.utility.LoggerUtility;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Component;
 
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
+@Component
+public class BufferedRepository {
 
-/**
- * Class Name : ExceptionPartitionCleanupDao
- * Description : DAO class used to execute partition cleanup queries.
- * Author : V1024113(Rohit Gardi)
- * Copyright (c) 2025 [State Bank of India]
- * All rights reserved
- *
- * Version:1.0
- */
+    private final LoggerUtility log = LoggerFactoryUtility.getLogger(this.getClass());
+    private final Map<Class<?>, BlockingQueue<BaseEvent>> bufferEventMap = new ConcurrentHashMap<>();
+    private final Map<Class<?>, JpaRepository<BaseEvent, UUID>> repositoryMap = new ConcurrentHashMap<>();
 
-@Repository
-@RequiredArgsConstructor
-public class ExceptionPartitionCleanupDao {
+    private final TaskExecutor taskExecutor;
+    private final OpsConfig opsConfig;
 
-    private static final LoggerUtility logger =
-            LoggerFactoryUtility.getLogger(
-                    ExceptionPartitionCleanupDao.class);
+    public BufferedRepository(@Qualifier("eventTaskExecutor") TaskExecutor taskExecutor, OpsConfig opsConfig) {
+        this.taskExecutor = taskExecutor;
+        this.opsConfig = opsConfig;
+    }
 
-    private final JdbcTemplate jdbcTemplate;
+    @SuppressWarnings("unchecked")
+    public <T extends BaseEvent> void registerRepository(Class<T> clazz, JpaRepository<T, UUID> repository) {
+        bufferEventMap.put(clazz, new LinkedBlockingQueue<>());
+        repositoryMap.put(clazz, (JpaRepository<BaseEvent, UUID>) repository);
+        taskExecutor.execute(() -> saveAndFlush(clazz));
+    }
 
-    /**
-     * Executes query to drop old partition
-     */
-    public void dropExceptionLogPartition(
-            String partitionDate) {
+    public <T extends BaseEvent> void buffer(T event) {
+        if(!bufferEventMap.get(event.getClass()).offer(event)){
+            log.error("Error while adding event logs, space full error");
+        };
+    }
 
-        String sql = String.format(
-                ExceptionTrackerQuery
-                        .DROP_EXCEPTION_LOG_PARTITION,
-                partitionDate
-        );
 
-        jdbcTemplate.execute(sql);
-
-        logger.info(
-                "Exception log partition dropped successfully for date : {}",
-                partitionDate
-        );
+    private <T extends BaseEvent> void saveAndFlush(Class<T> clazz) {
+        BlockingQueue<BaseEvent> queue = bufferEventMap.get(clazz);
+        JpaRepository<BaseEvent, UUID> repository = repositoryMap.get(clazz);
+        while (true) {
+            try {
+                List<BaseEvent> batch = new ArrayList<>();
+                BaseEvent first = queue.poll(1, TimeUnit.SECONDS);
+                if (ObjectUtils.isNotEmpty(first)) {
+                    batch.add(first);
+                    queue.drainTo(batch, opsConfig.getEventQueueBatchSize());
+                    repository.saveAll(batch);
+                }
+            } catch (Exception e) {
+                log.error("Error in Event Data saveAndFlush for {} : Error :{}", clazz, e.getMessage());
+            }
+        }
     }
 }
 
 =============================================================================
+package com.epay.operations.config;
 
-// FILE : ExceptionPartitionCleanupService.java
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-package com.sbi.epay.exceptionTracker.service;
+@Configuration
+public class TaskExecutorConfig {
 
-import com.sbi.epay.exceptionTracker.dao.ExceptionPartitionCleanupDao;
+    @Value("${queue.batch.size.event}")
+    private int eventQueueBatchSize;
 
-import lombok.RequiredArgsConstructor;
-
-import org.springframework.stereotype.Service;
-
-/**
- * Class Name : ExceptionPartitionCleanupService
- * Description : Service class used to process old partition cleanup.
- * Author : V1024113(Rohit Gardi)
- * Copyright (c) 2025 [State Bank of India]
- * All rights reserved
- *
- * Version:1.0
- */
-
-@Service
-@RequiredArgsConstructor
-public class ExceptionPartitionCleanupService {
-
-    private final ExceptionPartitionCleanupDao
-            exceptionPartitionCleanupDao;
-
-    /**
-     * Calls DAO layer to drop old partition
-     */
-    public void dropExceptionLogPartition(
-            String partitionDate) {
-
-        exceptionPartitionCleanupDao
-                .dropExceptionLogPartition(
-                        partitionDate
-                );
+    @Bean(name="eventTaskExecutor")
+    public TaskExecutor eventTaskExecutor(){
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(eventQueueBatchSize);
+        executor.setThreadNamePrefix("eventTaskExecutor");
+        executor.initialize();
+        return executor;
     }
 }
 
+
+
+
+=============================================================================
 
 
 
