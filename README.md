@@ -1,3 +1,93 @@
+# Exception Tracker Configuration
+
+exception-tracker:
+  retention-days: 7
+  cleanup-cron: "0 */5 * * * ?"
+
+////
+
+
+package com.sbi.epay.exceptionTracker.scheduler;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Class Name : ExceptionCleanupScheduler
+ * Description : Scheduler used to drop old Oracle partitions.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ExceptionCleanupScheduler {
+
+    private static final LoggerUtility logger =
+            LoggerFactoryUtility.getLogger(
+                    ExceptionCleanupScheduler.class);
+
+    private final JdbcTemplate jdbcTemplate;
+
+    @Value("${exception-tracker.retention-days}")
+    private int retentionDays;
+
+    /**
+     * Scheduler runs based on yml cron expression
+     */
+    @Scheduled(cron = "${exception-tracker.cleanup-cron}")
+    public void dropOldPartition() {
+
+        try {
+
+            String partitionDate =
+                    LocalDate.now()
+                            .minusDays(retentionDays)
+                            .format(
+                                    DateTimeFormatter
+                                            .ofPattern("yyyy-MM-dd"));
+
+            String sql = String.format(
+                    """
+                    ALTER TABLE EXCEPTION_LOG
+                    DROP PARTITION FOR (
+                        TO_DATE('%s', 'yyyy-MM-dd')
+                    )
+                    """,
+                    partitionDate);
+
+            jdbcTemplate.execute(sql);
+
+            logger.info(
+                    "Dropped partition for date : {}",
+                    partitionDate);
+
+        } catch (Exception ex) {
+
+            logger.error(
+                    "Error while dropping old partition",
+                    ex);
+        }
+    }
+}
+
+
+//////
 INSERT INTO EXCEPTION_LOG (
 
     SERVICE_NAME,
