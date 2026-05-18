@@ -1,3 +1,103 @@
+// FILE : ExceptionPartitionCleanupDao.java
+
+package com.sbi.epay.exceptionTracker.dao;
+
+import com.sbi.epay.exceptionTracker.query.ExceptionTrackerQuery;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Class Name : ExceptionPartitionCleanupDao
+ * Description : DAO class used to execute partition cleanup queries.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+@Repository
+@RequiredArgsConstructor
+public class ExceptionPartitionCleanupDao {
+
+    private static final LoggerUtility logger =
+            LoggerFactoryUtility.getLogger(
+                    ExceptionPartitionCleanupDao.class);
+
+    private final JdbcTemplate jdbcTemplate;
+
+    /**
+     * Executes query to drop old partition
+     */
+    public void dropExceptionLogPartition(
+            String partitionDate) {
+
+        String sql = String.format(
+                ExceptionTrackerQuery
+                        .DROP_EXCEPTION_LOG_PARTITION,
+                partitionDate
+        );
+
+        jdbcTemplate.execute(sql);
+
+        logger.info(
+                "Exception log partition dropped successfully for date : {}",
+                partitionDate
+        );
+    }
+}
+
+=============================================================================
+
+// FILE : ExceptionPartitionCleanupService.java
+
+package com.sbi.epay.exceptionTracker.service;
+
+import com.sbi.epay.exceptionTracker.dao.ExceptionPartitionCleanupDao;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Service;
+
+/**
+ * Class Name : ExceptionPartitionCleanupService
+ * Description : Service class used to process old partition cleanup.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionPartitionCleanupService {
+
+    private final ExceptionPartitionCleanupDao
+            exceptionPartitionCleanupDao;
+
+    /**
+     * Calls DAO layer to drop old partition
+     */
+    public void dropExceptionLogPartition(
+            String partitionDate) {
+
+        exceptionPartitionCleanupDao
+                .dropExceptionLogPartition(
+                        partitionDate
+                );
+    }
+}
+
+
+
+
 # FILE : application.yml
 
 exception-tracker:
