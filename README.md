@@ -45,6 +45,204 @@ package com.sbi.epay.exceptionTracker.service;
 
 import com.sbi.epay.exceptionTracker.query.ExceptionTrackerQuery;
 
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+/**
+ * Class Name : ExceptionPartitionCleanupService
+ * Description : Service class used to drop old exception log partitions.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+@Service
+@RequiredArgsConstructor
+public class ExceptionPartitionCleanupService {
+
+    private static final LoggerUtility logger =
+            LoggerFactoryUtility.getLogger(
+                    ExceptionPartitionCleanupService.class);
+
+    private final JdbcTemplate jdbcTemplate;
+
+    /**
+     * Drops old partition based on partition date
+     */
+    public void dropExceptionLogPartition(
+            String partitionDate) {
+
+        String sql = String.format(
+                ExceptionTrackerQuery
+                        .DROP_EXCEPTION_LOG_PARTITION,
+                partitionDate
+        );
+
+        jdbcTemplate.execute(sql);
+
+        logger.info(
+                "Exception log partition dropped successfully for date : {}",
+                partitionDate
+        );
+    }
+}
+
+=============================================================================
+
+// FILE : ExceptionCleanupScheduler.java
+
+package com.sbi.epay.exceptionTracker.scheduler;
+
+import com.sbi.epay.exceptionTracker.service.ExceptionPartitionCleanupService;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import lombok.RequiredArgsConstructor;
+
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Class Name : ExceptionCleanupScheduler
+ * Description : Scheduler class used to clean old exception log partitions.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+@Component
+@RequiredArgsConstructor
+public class ExceptionCleanupScheduler {
+
+    private static final LoggerUtility logger =
+            LoggerFactoryUtility.getLogger(
+                    ExceptionCleanupScheduler.class);
+
+    private final ExceptionPartitionCleanupService
+            exceptionPartitionCleanupService;
+
+    @Value("${exception-tracker.retention-days:7}")
+    private int retentionDays;
+
+    @Value("${exception-tracker.cleanup-cron:0 0 2 * * ?}")
+    private String cleanupCron;
+
+    /**
+     * Scheduler runs based on configured cron expression
+     * and drops old exception log partitions.
+     */
+    @Scheduled(
+            cron =
+                    "${exception-tracker.cleanup-cron:0 0 2 * * ?}"
+    )
+    @SchedulerLock(
+            name = "dropExceptionLogPartition",
+            lockAtLeastFor = "PT1M",
+            lockAtMostFor = "PT10M"
+    )
+    public void dropOldPartition() {
+
+        logger.info(
+                "Exception cleanup scheduler started with cron : {}",
+                cleanupCron
+        );
+
+        try {
+
+            String partitionDate =
+                    LocalDate.now()
+                            .minusDays(retentionDays)
+                            .format(
+                                    DateTimeFormatter
+                                            .ofPattern("yyyy-MM-dd")
+                            );
+
+            exceptionPartitionCleanupService
+                    .dropExceptionLogPartition(
+                            partitionDate
+                    );
+
+        } catch (Exception ex) {
+
+            logger.error(
+                    "Error while dropping exception log partition",
+                    ex
+            );
+        }
+
+        logger.info(
+                "Exception cleanup scheduler completed"
+        );
+    }
+}
+
+###################
+
+
+
+# FILE : application.yml
+
+exception-tracker:
+  retention-days: 7
+  cleanup-cron: "0 0 2 * * ?"
+
+=============================================================================
+
+// FILE : ExceptionTrackerQuery.java
+
+package com.sbi.epay.exceptionTracker.query;
+
+/**
+ * Class Name : ExceptionTrackerQuery
+ * Description : Query class used to store exception tracker SQL queries.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+
+public class ExceptionTrackerQuery {
+
+    private ExceptionTrackerQuery() {
+    }
+
+    /**
+     * Query used to drop old Oracle partition
+     */
+    public static final String DROP_EXCEPTION_LOG_PARTITION =
+            """
+            ALTER TABLE EXCEPTION_LOG
+            DROP PARTITION FOR (
+                TO_DATE('%s','YYYY-MM-DD')
+            )
+            """;
+}
+
+=============================================================================
+
+// FILE : ExceptionPartitionCleanupService.java
+
+package com.sbi.epay.exceptionTracker.service;
+
+import com.sbi.epay.exceptionTracker.query.ExceptionTrackerQuery;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
