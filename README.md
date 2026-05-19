@@ -1,4 +1,248 @@
 ========================================
+FINAL ExceptionTaskExecutorConfig.java
+
+package com.sbi.epay.exceptionTracker.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+/**
+
+* Class Name : ExceptionTaskExecutorConfig
+
+* Description : Configuration class used
+
+* to create async task executor bean.
+
+* 
+
+* Author : V1024113(Rohit Gardi)
+
+* Copyright (c) 2025 [State Bank of India]
+
+* All rights reserved
+
+* 
+
+* Version:1.0
+  */
+  @Configuration
+  public class ExceptionTaskExecutorConfig {
+  
+  /**
+  
+  * Creates task executor bean used for
+  
+  * asynchronous queue processing.
+    */
+    @Bean(name = "exceptionTaskExecutor")
+    public ThreadPoolTaskExecutor exceptionTaskExecutor() {
+    
+    ThreadPoolTaskExecutor executor =
+    new ThreadPoolTaskExecutor();
+    
+    /**
+    
+    * Minimum active threads.
+      */
+      executor.setCorePoolSize(2);
+    
+    /**
+    
+    * Maximum threads allowed.
+      */
+      executor.setMaxPoolSize(5);
+    
+    /**
+    
+    * Queue capacity.
+      */
+      executor.setQueueCapacity(1000);
+    
+    /**
+    
+    * Thread naming pattern.
+      */
+      executor.setThreadNamePrefix(
+      "exception-tracker-"
+      );
+    
+    /**
+    
+    * Initializes executor.
+      */
+      executor.initialize();
+    
+    return executor;
+    }
+    }
+
+========================================
+FINAL ExceptionBufferedRepository.java
+
+package com.sbi.epay.exceptionTracker.repository;
+
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+import com.sbi.epay.exceptionTracker.util.ErrorConstant;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import jakarta.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+
+* Class Name : ExceptionBufferedRepository
+
+* Description : Repository class used for
+
+* asynchronous batch save processing.
+
+* 
+
+* Author : V1024113(Rohit Gardi)
+
+* Copyright (c) 2025 [State Bank of India]
+
+* All rights reserved
+
+* 
+
+* Version:1.0
+  */
+  @Component
+  public class ExceptionBufferedRepository {
+  
+  private static final LoggerUtility logger =
+  LoggerFactoryUtility.getLogger(
+  ExceptionBufferedRepository.class
+  );
+  
+  private final ExceptionLogRepository repository;
+  
+  private final TaskExecutor taskExecutor;
+  
+  /**
+  
+  * Queue used for storing entities.
+    */
+    private final BlockingQueue<ExceptionLog> queue =
+    new LinkedBlockingQueue<>(
+    ErrorConstant.QUEUE_SIZE
+    );
+  
+  public ExceptionBufferedRepository(
+  
+       ExceptionLogRepository repository,
+
+     @Qualifier("exceptionTaskExecutor")
+     TaskExecutor taskExecutor
+  
+  ) {
+  
+   this.repository = repository;
+
+ this.taskExecutor = taskExecutor;
+  
+  }
+  
+  /**
+  
+  * Starts async consumer thread.
+    */
+    @PostConstruct
+    public void init() {
+    
+    taskExecutor.execute(
+    this::saveAndFlush
+    );
+    }
+  
+  /**
+  
+  * Adds entity into queue.
+    */
+    public void buffer(
+    ExceptionLog entity
+    ) {
+    
+    if (!queue.offer(entity)) {
+    
+     logger.error(
+         "Error while buffering exception log, queue full"
+ );
+    
+    }
+    }
+  
+  /**
+  
+  * Consumes queue data and performs
+  
+  * direct database bulk save.
+    */
+    private void saveAndFlush() {
+    
+    while (true) {
+    
+     try {
+
+     List<ExceptionLog> batch =
+             new ArrayList<>();
+
+     ExceptionLog first =
+             queue.poll(
+                     1,
+                     TimeUnit.SECONDS
+             );
+
+     if (first != null) {
+
+         batch.add(first);
+
+         queue.drainTo(
+                 batch,
+                 ErrorConstant.BATCH_SIZE
+         );
+
+         /**
+          * Direct DB bulk save.
+          */
+         repository.saveAll(batch);
+
+         logger.info(
+                 "Exception log batch saved successfully, batch size : {}",
+                 batch.size()
+         );
+     }
+
+ } catch (Exception ex) {
+
+     logger.error(
+             "Error while saving exception log batch",
+             ex
+     );
+ }
+    
+    }
+    }
+    }
+
+
+
+========================================
 UTILITY CLASSES - FINAL CODE
 
 ========================================
