@@ -1,3 +1,140 @@
+
+package com.sbi.epay.exceptionTracker.repository;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.sbi.epay.exceptionTracker.dto.ExceptionLogDto;
+import com.sbi.epay.exceptionTracker.entity.ExceptionLog;
+import com.sbi.epay.exceptionTracker.mapper.ExceptionLogMapper;
+import com.sbi.epay.exceptionTracker.util.ErrorConstant;
+import com.sbi.epay.exceptionTracker.util.MDCUtil;
+
+import com.sbi.epay.logging.utility.LoggerFactoryUtility;
+import com.sbi.epay.logging.utility.LoggerUtility;
+
+import jakarta.annotation.PostConstruct;
+
+import org.apache.commons.lang3.ObjectUtils;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Class Name : ExceptionBufferedRepository
+ * Description : Buffered repository used for asynchronous
+ * batch processing of exception logs.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+@Component
+public class ExceptionBufferedRepository {
+
+    private static final LoggerUtility logger = LoggerFactoryUtility.getLogger(ExceptionBufferedRepository.class);
+    private final ExceptionLogRepository repository;
+    private final ExceptionLogMapper mapper;
+    private final ObjectMapper objectMapper;
+    private final TaskExecutor taskExecutor;
+    private final BlockingQueue<ExceptionLogDto> queue = new LinkedBlockingQueue<>(ErrorConstant.QUEUE_SIZE);
+
+    public ExceptionBufferedRepository(
+            ExceptionLogRepository repository,
+            ExceptionLogMapper mapper,
+            ObjectMapper objectMapper,
+            @Qualifier("exceptionTaskExecutor")
+            TaskExecutor taskExecutor
+    ) {
+
+        this.repository = repository;
+        this.mapper = mapper;
+        this.objectMapper = objectMapper;
+        this.taskExecutor = taskExecutor;
+    }
+
+    @PostConstruct
+    public void init() {
+        taskExecutor.execute(this::saveAndFlush);
+    }
+
+    public void buffer(ExceptionLogDto dto) {
+
+        if (!queue.offer(dto)) {
+            logger.error("Error while buffering exception log, queue full");
+        }
+    }
+    private void saveAndFlush() {
+
+        while (true) {
+
+            try {
+
+                List<ExceptionLog> batch = new ArrayList<>();
+                ExceptionLogDto first = queue.poll(1, TimeUnit.SECONDS);
+                if (ObjectUtils.isNotEmpty(first)) {
+                    try {
+                        prepare(first);
+                        batch.add(mapper.toEntity(first));
+
+                    } catch (Exception ex) {
+                        logger.error("Error while preparing first exception log", ex);
+                    }
+
+                    List<ExceptionLogDto> temp = new ArrayList<>();
+                    queue.drainTo(temp, ErrorConstant.BATCH_SIZE);
+
+                    for (ExceptionLogDto dto : temp) {
+
+                        try {
+                            prepare(dto);
+                            batch.add(mapper.toEntity(dto));
+
+                        } catch (Exception ex) {
+                            logger.error("Error while preparing exception log", ex);
+                        }
+                    }
+                    if (!batch.isEmpty()) {
+                        repository.saveAll(batch);
+                        logger.info("Exception log batch saved successfully, batch size : {}", batch.size()
+                        );
+                    }
+                }
+            } catch (Exception ex) {
+                logger.error("Error while saving exception log batch", ex);
+            }
+        }
+    }
+
+    private void prepare(ExceptionLogDto dto) throws Exception {
+
+        Map<String, String> mdc = dto.getMdcMap();
+        if (mdc == null) {
+            mdc = new HashMap<>();
+        }
+
+        dto.setMerchantId(MDCUtil.getIgnoreCase(mdc, ErrorConstant.MID));
+        dto.setOrderRefNumber(MDCUtil.getIgnoreCase(mdc, ErrorConstant.ORDER_REF));
+        dto.setAtrnNum(MDCUtil.getIgnoreCase(mdc, ErrorConstant.ATRN));
+        dto.setPayMode(MDCUtil.getIgnoreCase(mdc, ErrorConstant.PAYMODE));
+        dto.setCorrelationId(MDCUtil.getIgnoreCase(mdc, ErrorConstant.CORRELATION_ID));
+        dto.setRemark(MDCUtil.getIgnoreCase(mdc, ErrorConstant.REMARK));
+        dto.setCreatedBy(MDCUtil.getIgnoreCase(mdc, ErrorConstant.CREATED_BY));
+        dto.setCreatedDate(System.currentTimeMillis());
+        dto.setMdcJson(objectMapper.writeValueAsString(mdc));
+    }
+}
+
+###############################################
 ========================================
 FINAL ExceptionTaskExecutorConfig.java
 
