@@ -1,3 +1,49 @@
+package com.sbi.epay.exceptionTracker.util;
+
+import lombok.experimental.UtilityClass;
+
+/**
+ * Class Name : StackTraceUtil
+ * Description : Utility class used to generate formatted
+ * stack trace string from exception.
+ * Author : V1024113(Rohit Gardi)
+ * Copyright (c) 2025 [State Bank of India]
+ * All rights reserved
+ *
+ * Version:1.0
+ */
+@UtilityClass
+public class StackTraceUtil {
+
+    /**
+     * Returns formatted stack trace
+     */
+    public static String getShortStackTrace(Throwable ex) {
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(ex.getMessage())
+                .append(" ");
+
+        StackTraceElement[] elements =
+                ex.getStackTrace();
+
+        for (StackTraceElement element : elements) {
+
+            sb.append(element.toString())
+                    .append("\n");
+        }
+
+        return sb.toString();
+    }
+}
+
+
+#####
+
+
+
+
 BULK SAVE LOGIC - FINAL FILE CHANGES
 
 CHANGED FILES
