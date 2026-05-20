@@ -1,3 +1,33 @@
+@RestController
+@RequestMapping("/test")
+@RequiredArgsConstructor
+public class TestController {
+
+    @GetMapping("/exception")
+    @TrackException(storeStackTrace = true, rethrow = false)
+    public String testException() {
+
+        // MDC values
+        MDC.put("MID", "MID123456");
+        MDC.put("CORRELATION_ID", "CORR-123456789");
+        MDC.put("REMARK", "Testing Exception Tracker");
+        MDC.put("CREATED_BY", "Rohit");
+        MDC.put("ORDER_REF", "ORDER123");
+        MDC.put("ATRN", "ATRN123");
+        MDC.put("PAYMODE", "UPI");
+
+        // Test Exception
+        String value = null;
+        value.length();
+
+        return "SUCCESS";
+    }
+}
+
+###
+
+
+
 
 1. ExceptionQueueService.java
 
