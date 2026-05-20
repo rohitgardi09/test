@@ -1,3 +1,154 @@
+Exception Tracker Service
+
+Overview
+
+Exception Tracker Service is used to capture application exceptions asynchronously and store them into the database.
+
+The service uses AOP-based exception interception and buffered batch processing for better performance and centralized exception logging.
+
+---
+
+Features
+
+- AOP based exception tracking
+- Asynchronous batch DB save
+- Buffered queue processing
+- MDC logging support
+- Correlation ID support
+- Stack trace capture support
+- JSON validation at DB level
+- Partition based exception table
+- Batch processing support
+
+---
+
+Flow
+
+1. Exception occurs in application
+2. "@TrackException" aspect intercepts exception
+3. Exception details converted into "ExceptionLogDto"
+4. DTO pushed into queue
+5. "ExceptionQueueService" prepares MDC values
+6. "ExceptionBufferedRepository" saves batch asynchronously into DB
+
+---
+
+Important Components
+
+TrackException
+
+Custom annotation used for exception tracking.
+
+ExceptionTrackerAspect
+
+Intercepts exceptions using AOP and prepares DTO object.
+
+ExceptionQueueService
+
+Prepares exception log data before buffering.
+
+ExceptionBufferedRepository
+
+Handles asynchronous queue buffering and batch DB save.
+
+ExceptionLogMapper
+
+Converts DTO into Entity.
+
+MDCUtil
+
+Utility class used to fetch MDC values safely.
+
+---
+
+Database Table
+
+Table Name
+
+"EXCEPTION_LOG"
+
+Stored Details
+
+- Service Name
+- Class Name
+- Method Name
+- Exception Type
+- Exception Message
+- Stack Trace
+- Merchant ID
+- Correlation ID
+- Remark
+- MDC JSON
+- Created By
+- Created Date
+
+---
+
+JSON Validation
+
+"MDC_JSON" column is validated at DB level.
+
+MDC_JSON CLOB CHECK (MDC_JSON IS JSON) ENABLE
+
+Invalid JSON values are automatically rejected by Oracle DB.
+
+---
+
+Correlation ID Support
+
+Correlation ID is fetched from MDC and stored into database.
+
+Example:
+
+.correlationId(
+    MDCUtil.getIgnoreCase(mdc, ErrorConstant.CORRELATION_ID)
+)
+
+---
+
+Build Project
+
+./gradlew clean build
+
+Windows:
+
+gradlew.bat clean build
+
+---
+
+Run Project
+
+./gradlew bootRun
+
+Windows:
+
+gradlew.bat bootRun
+
+---
+
+Clone Repository
+
+git clone <repository-url>
+
+Checkout branch:
+
+git checkout feature/EJU-00_Exception_Log_Utility_to_Capture_and_Log_Exception_In_Db
+
+---
+
+Author
+
+Rohit Gardi (V1024113)
+State Bank of India
+
+---
+
+Version
+
+1.0
+
+
+#############₹₹₹₹₹₹
 @Mapper(componentModel = "spring")
 public interface ExceptionLogMapper {
 
