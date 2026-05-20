@@ -1,3 +1,19 @@
+@Mapper(componentModel = "spring")
+public interface ExceptionLogMapper {
+
+    @Mapping(target = "id", ignore = true)
+
+    @Mapping(
+        target = "mdcJson",
+        expression = "java(dto.getMdcMap() != null && !dto.getMdcMap().isEmpty() ? dto.getMdcJson() : null)"
+    )
+
+    ExceptionLog toEntity(ExceptionLogDto dto);
+}
+
+
+
+?????#######
 @RestController
 @RequestMapping("/test")
 @RequiredArgsConstructor
