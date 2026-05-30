@@ -1,69 +1,49 @@
-Hi Team,
-I have completed the centralized login, but project access is still not available.
-If anyone else is also facing the same issue, please connect with DevOps.
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.flag {
+    width: 300px;
+    border: 1px solid #000;
+}
 
+.saffron {
+    height: 60px;
+    background-color: #FF9933;
+}
 
+.white {
+    height: 60px;
+    background-color: white;
+    position: relative;
+}
 
+.green {
+    height: 60px;
+    background-color: #138808;
+}
 
+.chakra {
+    width: 50px;
+    height: 50px;
+    border: 3px solid navy;
+    border-radius: 50%;
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+</style>
+</head>
+<body>
 
-@Transactional
-    public void processUsersWithExpiredPassword() {
-        logger.info("Find and update Expired pwd - Scheduler start.");
-        long currentTimeStamp = Instant.now().toEpochMilli();
-        logger.info("Current timestamp: "+ currentTimeStamp);
+<div class="flag">
+    <div class="saffron"></div>
+    <div class="white">
+        <div class="chakra"></div>
+    </div>
+    <div class="green"></div>
+</div>
 
-        //1- Get list of Merchant users who passed pwd expiration time.
-        List<MerchantUser> merchantUsers = merchantUserRepository.findAllByPasswordExpiryTimeLessThanAndStatusNotIn(currentTimeStamp, List.of(UserStatus.EXPIRED, UserStatus.BLOCKED, UserStatus.ACTIVE, UserStatus.INACTIVE));
-
-        //2- Check collection for users.
-        if(!merchantUsers.isEmpty()) {
-            logger.info("Total merchant users: "+merchantUsers.size());
-            batchUpdateForPasswordExpiry(merchantUsers);
-        } else {
-            logger.info("Zero users found with expired pwd - Scheduler End. ");
-        }
-    }
-
-----------------------------------------------------------------------------------------------------------------------------
-	
-	MerchantUserRepository
-	
-	
-	List<MerchantUser> findAllByPasswordExpiryTimeLessThanAndStatusNotIn(Long currentTime, List<UserStatus> userStatus);
-	
-----------------------------------------------------------------------------------------------------------------------------
-	PasswordManagementDao
-	
-	
-	/**
-     * Set status as auto expired
-     *
-     * @param merchantUsers - List of merchant users pwd passed expiry date.
-     */
-    private void batchUpdateForPasswordExpiry(List<MerchantUser> merchantUsers) {
-        List<PasswordManagement> passwordHistory = new ArrayList<>();
-
-        merchantUsers.forEach( merchantUser -> {
-            long currTimeStamp = Instant.now().toEpochMilli();
-            PasswordManagement  mph = PasswordManagement.builder()
-                    .userId(merchantUser.getId())
-                    .status(PasswordStatusType.EXPIRED)
-                    .previousPassword(merchantUser.getPassword())
-                    .requestType(PasswordManagementType.AUTO_EXPIRE_PASSWORD)
-                    .createdAt(merchantUser.getCreatedAt())
-                    .updatedAt(currTimeStamp)
-                    .build();
-            passwordHistory.add(mph);
-
-            merchantUser.setStatus(UserStatus.EXPIRED);
-            merchantUser.setUpdatedAt(currTimeStamp);
-        });
-
-        if(!passwordHistory.isEmpty()) {
-            // Save pwd history.
-            logger.info("pwd history records: "+passwordHistory.size());
-            passwordManagementRepository.saveAllAndFlush(passwordHistory);
-        }
-        // Update merchant users (expired pwd)
-        merchantUserRepository.saveAllAndFlush(merchantUsers);
-    }
+</body>
+</html>
