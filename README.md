@@ -1,3 +1,21 @@
+@ExceptionHandler(ApiDisabledException.class)
+public ResponseEntity<Map<String, Object>> handleApiDisabled(
+        ApiDisabledException ex) {
+
+    return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(Map.of(
+                    "status", 404,
+                    "error", "Not Found",
+                    "message", "This API is not available in the current deployment.",
+                    "path", ex.getApiPath(),
+                    "timestamp", Instant.now().toString()
+            ));
+}
+
+
+
+
 // ════════════════════════════════════════════════════════════════════════════
 // FILE 1: src/main/java/com/epay/merchant/annotation/FutureDeployment.java
 // ════════════════════════════════════════════════════════════════════════════
