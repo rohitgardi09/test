@@ -1,3 +1,12 @@
+Hi Bhoopendra,
+
+I would like to request leave on 14th and 15th July to attend my village's annual fair and a family function. I kindly request you to approve my leave for these dates.
+
+Thank you.
+
+
+
+
 https://emp.neosofttech.com/
 
 
