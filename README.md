@@ -1,55 +1,35 @@
-Hi Bhoopendra,
-
-I would like to request leave on 14th and 15th July to attend my village's annual fair and a family function. I kindly request you to approve my leave for these dates.
-
-Thank you.
-
-
-
-
-https://emp.neosofttech.com/
-
-
-
-
-package com.epay.reporting.scheduler;
-
-import com.epay.reporting.service.S3UploadRetryService;
-import com.sbi.epay.authentication.util.EPayAuthenticationConstant;
-import com.sbi.epay.logging.utility.LoggerFactoryUtility;
-import com.sbi.epay.logging.utility.LoggerUtility;
-import lombok.RequiredArgsConstructor;
-import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
-import org.slf4j.MDC;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import java.util.UUID;
-
-/**
- * Class Name: S3UploadRetryScheduler
- * Description: This class is responsible for scheduling and re-attempting to upload the generated file to the S3 from the mount path.
- * Author: Akshaya Sahasranamam
- * Copyright (c) 2026 [State Bank of India]
- * All rights reserved
- * Version: 1.0
- */
-@Component
-@RequiredArgsConstructor
-public class S3UploadRetryScheduler {
-
-    private final S3UploadRetryService s3UploadRetryService;
-
-    private final LoggerUtility log = LoggerFactoryUtility.getLogger(this.getClass());
-
-    @Scheduled(cron = "${scheduled.report.upload.retry}")
-    @SchedulerLock(name = "Report_upload_Scheduler", lockAtLeastFor = "PT30S", lockAtMostFor = "PT2M")
-    public void s3UploadRetryScheduler() {
-        MDC.put(EPayAuthenticationConstant.CORRELATION_ID, String.valueOf(UUID.randomUUID()));
-        MDC.put(EPayAuthenticationConstant.SCENARIO, "RetryS3Upload");
-        MDC.put(EPayAuthenticationConstant.OPERATION, "RetryS3Upload");
-        log.info("Scheduler called for S3 upload retry");
-        s3UploadRetryService.uploadReportsIntoS3();
-        log.info("Scheduler completed for S3 upload retry");
-    }
-}
+Jun 19, 2026 12:37:45 PM org.apache.catalina.core.StandardService stopInternal
+INFO: Stopping service [Tomcat]
+ERROR SpringApplication Application run failed
+ org.springframework.beans.factory.BeanCreationException: Error creating bean with name 's3UploadRetryScheduler' defined in file [D:\Vaibhav\epay_reports_service\build\classes\java\main\com\epay\reporting\scheduler\S3UploadRetryScheduler.class]: Encountered invalid @Scheduled method 's3UploadRetryScheduler': Could not resolve placeholder 'scheduled.report.upload.retry' in value "${scheduled.report.upload.retry}"
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:614)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1228)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1194)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1130)
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:990)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.epay.reporting.EpayReportingServiceApplication.main(EpayReportingServiceApplication.java:37)
+Caused by: java.lang.IllegalStateException: Encountered invalid @Scheduled method 's3UploadRetryScheduler': Could not resolve placeholder 'scheduled.report.upload.retry' in value "${scheduled.report.upload.retry}"
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.processScheduledTask(ScheduledAnnotationBeanPostProcessor.java:525)
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.processScheduledSync(ScheduledAnnotationBeanPostProcessor.java:364)
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.processScheduled(ScheduledAnnotationBeanPostProcessor.java:343)
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.lambda$postProcessAfterInitialization$1(ScheduledAnnotationBeanPostProcessor.java:308)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.lambda$postProcessAfterInitialization$2(ScheduledAnnotationBeanPostProcessor.java:308)
+	at java.base/java.util.LinkedHashMap.forEach(LinkedHashMap.java:986)
+	at org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.postProcessAfterInitialization(ScheduledAnnotationBeanPostProcessor.java:307)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyBeanPostProcessorsAfterInitialization(AbstractAutowireCapableBeanFactory.java:445)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1829)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:607)
+	... 17 more
