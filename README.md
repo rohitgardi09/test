@@ -1,3 +1,32 @@
+@GetMapping("/download")
+public void downloadFile(HttpServletResponse response) throws IOException {
+
+    String filePath = "C:/temp/sample.pdf";
+    File file = new File(filePath);
+
+    response.setContentType("application/octet-stream");
+    response.setHeader(
+            "Content-Disposition",
+            "attachment; filename=\"" + file.getName() + "\"");
+
+    try (InputStream inputStream = new FileInputStream(file);
+         OutputStream outputStream = response.getOutputStream()) {
+
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        outputStream.flush();
+    }
+}
+
+
+
+
+............
 package com.epay.merchant.controller;
 
 import com.epay.merchant.service.InvoiceService;
