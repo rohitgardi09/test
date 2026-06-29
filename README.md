@@ -1,3 +1,15 @@
+Today's payout process was impacted because the Operations Service report filter has a current limit of 2500 records, while today's report size exceeded 2700+ records. As a result, the report processing failed, and today's payout could not be completed.
+
+We are currently updating the report filter limit from 2500 to 4000 records. Once this change is deployed, the report will be processed successfully, and the payout execution will resume.
+
+
+
+
+
+
+
+
+
 INSERT INTO MERCHANT_USER (
     ID,
     PARENT_USERID,
