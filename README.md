@@ -1,3 +1,15 @@
+
+Today's payout process was impacted because the "REPORT_FILTER" column in the "REPORT_REQUEST" table of the Operations Service has a maximum size limit of 2500 characters. Today's report filter exceeded 2700+ characters, causing the report processing to fail. As a result, today's payout could not be completed.
+
+We are currently increasing the "REPORT_FILTER" column size in the "REPORT_REQUEST" table from 2500 to 4000 characters. Once this change is deployed, the report will be processed successfully, and the payout execution will resume.
+
+
+
+
+
+......
+...
+
 Today's payout process was impacted because the Operations Service report filter has a current limit of 2500 records, while today's report size exceeded 2700+ records. As a result, the report processing failed, and today's payout could not be completed.
 
 We are currently updating the report filter limit from 2500 to 4000 records. Once this change is deployed, the report will be processed successfully, and the payout execution will resume.
