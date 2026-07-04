@@ -1,3 +1,28 @@
+public void sendEmailNotification(MerchantEmailDto merchantEmailDto) {
+
+    NotificationManagement notificationManagement =
+            buildNotificationManagement(merchantEmailDto);
+
+    notificationManagementRepository.save(notificationManagement);
+
+    try {
+        sendEmail(notificationMapper.mapEmailDtoToToDto(merchantEmailDto));
+
+        notificationManagement.setStatus(RESPONSE_SUCCESS);
+
+    } catch (Exception e) {
+        notificationManagement.setStatus(RESPONSE_FAILED);
+        notificationManagementRepository.save(notificationManagement);
+
+        throw new RuntimeException("Failed to send email notification.", e);
+    }
+
+    notificationManagementRepository.save(notificationManagement);
+}
+
+
+
+
 
 Today's payout process was impacted because the "REPORT_FILTER" column in the "REPORT_REQUEST" table of the Operations Service has a maximum size limit of 2500 characters. Today's report filter exceeded 2700+ characters, causing the report processing to fail. As a result, today's payout could not be completed.
 
