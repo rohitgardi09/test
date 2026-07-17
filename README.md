@@ -1,3 +1,13 @@
+Subject: Follow-up on OpenShift Access
+Hi Team,
+Just following up on my OpenShift access request. Please provide access to the DEV, UAT, and PRE-PROD environments.
+Thanks & Regards,
+Rohit Gardi
+
+
+
+
+
 
 Subject: Please Add application-local.yml
 Hi Team,
