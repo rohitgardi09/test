@@ -1,3 +1,15 @@
+
+Subject: Please Add application-local.yml
+Hi Team,
+application-local.yml is not added. Because of this, whenever we need to test or fix anything in the local environment, we have to add all the required configurations manually first.
+Please add application-local.yml.
+
+
+
+
+
+
+
 Required Backlog Changes – Please Retain
 
 
