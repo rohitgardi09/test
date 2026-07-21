@@ -1,4 +1,10 @@
 
+^[A-Za-z0-9&.,()'\/\- ]{1,100}$
+
+
+
+
+
 You can reply with this:
 
 > Hello Team,
