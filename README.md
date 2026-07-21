@@ -1,3 +1,19 @@
+
+You can reply with this:
+
+> Hello Team,
+
+Please find the requested details below:
+
+Hostname: SBIEPAYB163
+OS Version: Windows 11 Enterprise – Version 24H2 (OS Build 26100.8457)
+
+I am currently unable to attach the screenshots. Kindly let me know if the above details are sufficient, or I will share the screenshots once I am able to attach them.
+
+Thanks & Regards,
+Rohit Balu Gardi
+
+
 Subject: Request to Resolve ClearPass OnGuard Quarantine Issue
 
 Hi Team,
