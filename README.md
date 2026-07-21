@@ -1,3 +1,20 @@
+Subject: Request to Resolve ClearPass OnGuard Quarantine Issue
+
+Hi Team,
+
+My system is showing "Health Status: Quarantined" in ClearPass OnGuard due to missing Windows Hotfixes (KB5093998, KB5094146, KB5099111, and KB5016501). Because of this, I am unable to access the network.
+
+Kindly resolve the issue at the earliest.
+
+Thanks & Regards,
+Rohit Gardi
+
+
+
+
+
+
+
 Subject: Follow-up on OpenShift Access
 Hi Team,
 Just following up on my OpenShift access request. Please provide access to the DEV, UAT, and PRE-PROD environments.
