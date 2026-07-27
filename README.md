@@ -1,3 +1,16 @@
+Subject: XLSX Report Download Issue – Integration
+
+Hi Team,
+
+We are facing an issue while downloading the XLSX report in the Integration environment. Please find the attached screenshot for reference.
+
+Kindly check and resolve the issue.
+
+Thanks, Rohit
+
+
+
+
 
 ^[A-Za-z0-9&.,()'\/\- ]{1,100}$
 
