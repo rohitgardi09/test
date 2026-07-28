@@ -1,3 +1,155 @@
+
+Ho. He part-wise copy-paste sathi.
+
+
+---
+
+Part 1 – Imports
+
+import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+
+---
+
+Part 2 – transactionHeader
+
+private static final Map<Integer, String> transactionHeader = Map.ofEntries(
+        Map.entry(1, "Transaction Request Date And Time"),
+        Map.entry(2, "Transaction Success Date And Time"),
+        Map.entry(3, "Merchant Order No"),
+        Map.entry(4, "SBIEPAY ORDER ID"),
+        Map.entry(5, "Cust Id"),
+        Map.entry(6, "ATRN"),
+        Map.entry(7, "Gateway Trace Number"),
+        Map.entry(8, "Pay Mode Code"),
+        Map.entry(9, "Gateway Name"),
+        Map.entry(10, "Pay Proc"),
+        Map.entry(11, "Transaction Currency"),
+        Map.entry(12, "Merchant Order Amount"),
+        Map.entry(13, "Gateway Posting Amount"),
+        Map.entry(14, "Commission"),
+        Map.entry(15, "GST"),
+        Map.entry(16, "Order Status"),
+        Map.entry(17, "Transaction Status"),
+        Map.entry(18, "Settlement Status"),
+        Map.entry(19, "Refund Status"),
+        Map.entry(20, "Chargeback Status"),
+        Map.entry(21, "Amount Refunded"),
+        Map.entry(22, "Amount Chargeback"),
+        Map.entry(23, "CIN Number"),
+        Map.entry(24, "Merchant Other Details"),
+        Map.entry(25, "Settlement Date")
+);
+
+
+---
+
+Part 3 – getHeaders()
+
+public List<String> getHeaders(String reportName, String mId, Map<Integer, String> defaultHeaders) {
+
+    log.info("fetching report headers for reportName ={}, merchantId={}", reportName, mId);
+
+    Optional<ReportHeaderConfig> config =
+            reportHeaderConfigRepository.findBymIdAndReportNameAndIsActive(mId, reportName, true);
+
+    if (config.isEmpty()) {
+        log.info("using default headers configuration");
+
+        return defaultHeaders.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    try {
+
+        Map<String, String> headerMap =
+                objectMapper.readValue(
+                        config.get().getHeaderJson(),
+                        new TypeReference<Map<String, String>>() {
+                        });
+
+        return headerMap.entrySet()
+                .stream()
+                .sorted((e1, e2) ->
+                        Integer.compare(
+                                Integer.parseInt(e1.getKey()),
+                                Integer.parseInt(e2.getKey())
+                        ))
+                .map(Map.Entry::getValue)
+                .toList();
+
+    } catch (JsonProcessingException e) {
+
+        log.error("Error while fetching header configuration", e);
+
+        throw new ReportingException(
+                INVALID_ERROR_CODE,
+                INVALID_HEADER_CONFIGURATION
+        );
+    }
+}
+
+
+---
+
+Part 4 – buildReport()
+
+case TRANSACTION ->
+        buildReport(
+                reportManagementDto,
+                getHeaders(
+                        Report.TRANSACTION.name(),
+                        reportManagementDto.getMId(),
+                        transactionHeader
+                ),
+                reportDao.getTransaction(reportManagementDto)
+        );
+
+
+---
+
+Part 5 – Liquibase SQL
+
+HEADER_JSON replace kar:
+
+{
+    "1":"Transaction Request Date And Time",
+    "2":"Transaction Success Date And Time",
+    "3":"Merchant Order No",
+    "4":"SBIEPAY ORDER ID",
+    "5":"Cust Id",
+    "6":"ATRN",
+    "7":"Gateway Trace Number",
+    "8":"Pay Mode Code",
+    "9":"Gateway Name",
+    "10":"Pay Proc",
+    "11":"Transaction Currency",
+    "12":"Merchant Order Amount",
+    "13":"Gateway Posting Amount",
+    "14":"Commission",
+    "15":"GST",
+    "16":"Order Status",
+    "17":"Transaction Status",
+    "18":"Settlement Status",
+    "19":"Refund Status",
+    "20":"Chargeback Status",
+    "21":"Amount Refunded",
+    "22":"Amount Chargeback",
+    "23":"CIN Number",
+    "24":"Merchant Other Details",
+    "25":"Settlement Date"
+}
+
+He sagle changes reviewer chya comment nusar ahet.
+
+
+
+
 1.ReportService
   
   /**
