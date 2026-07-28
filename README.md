@@ -1,4 +1,50 @@
 
+public List<String> getHeaders(String reportName, String mId, Map<Integer, String> defaultHeaders) {
+
+    log.info("fetching report headers for reportName={}, merchantId={}", reportName, mId);
+
+    Optional<ReportHeaderConfig> config =
+            reportHeaderConfigRepository.findBymIdAndReportNameAndIsActive(
+                    mId,
+                    reportName,
+                    true);
+
+    if (config.isEmpty()) {
+        log.info("using default headers configuration");
+
+        return defaultHeaders.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    try {
+
+        Map<Integer, String> headerMap =
+                objectMapper.readValue(
+                        config.get().getHeaderJson(),
+                        new TypeReference<Map<Integer, String>>() {
+                        });
+
+        return headerMap.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
+                .toList();
+
+    } catch (JsonProcessingException e) {
+
+        log.error("Error while fetching header configuration", e);
+
+        throw new ReportingException(
+                INVALID_ERROR_CODE,
+                INVALID_HEADER_CONFIGURATION);
+    }
+}
+
+
+
 Ho. He part-wise copy-paste sathi.
 
 
