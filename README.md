@@ -1,4 +1,38 @@
 
+private void buildReportTemp(
+        ReportManagementDto reportManagementDto,
+        Map<Integer, String> headerMap,
+        List<List<Object>> fileDataTemp) {
+
+    log.info("Building report for ReportManagementId: {} and format: {}",
+            reportManagementDto.getId(),
+            reportManagementDto.getFormat());
+
+    validateNotEmpty(fileDataTemp);
+
+    ReportFile reportFile;
+    var reportName = reportManagementDto.getReport();
+
+    List<String> headers = headerMap.entrySet()
+            .stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(Map.Entry::getValue)
+            .toList();
+
+    reportFile = fileGeneratorService.generateFile(
+            reportManagementDto.getFormat(),
+            reportName,
+            reportManagementDto.getMId(),
+            headers,
+            fileDataTemp);
+
+    uploadFileOnS3(reportManagementDto, reportFile);
+}
+
+
+
+
+........
 public List<String> getHeaders(String reportName, String mId, Map<Integer, String> defaultHeaders) {
 
     log.info("fetching report headers for reportName={}, merchantId={}", reportName, mId);
