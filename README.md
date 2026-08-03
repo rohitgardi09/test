@@ -1,3 +1,17 @@
+Hello Team,
+
+I have changed my device and need JFrog authentication on my new device. Could you please help me with the setup?
+
+Thank you.
+
+Regards,
+Rohit Gardi
+
+
+
+
+
+
 private void buildReportTemp(
         ReportManagementDto reportManagementDto,
         Map<Integer, String> headerMap,
