@@ -1,3 +1,41 @@
+
+private RecordType validateRecordType(UUID gstInfoId) {
+
+    GstReportInfoDto reportInfo = gstReportManagementDao.findById(gstInfoId);
+
+    if (reportInfo == null) {
+        throw new ReportingException("GST Report Info not found");
+    }
+
+    RecordType recordType = reportInfo.getRecordType();
+
+    if (recordType == null) {
+        throw new ReportingException("Record Type not found");
+    }
+
+    switch (recordType) {
+        case Processing_File:
+            log.info("Record Type : Processing_File");
+            break;
+
+        case Manual_File:
+            log.info("Record Type : Manual_File");
+            break;
+
+        case Response_File:
+            log.info("Record Type : Response_File");
+            break;
+
+        default:
+            throw new ReportingException("Invalid Record Type : " + recordType);
+    }
+
+    return recordType;
+}
+
+
+
+
 कॉपी करण्यासाठी एकाच ठिकाणी देतो.
 
 @RestController
