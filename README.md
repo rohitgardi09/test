@@ -1,3 +1,36 @@
+RecordType recordType = validateRecordType(gstReportStatusDto.getGstInfoId());
+
+switch (recordType) {
+
+    case Processing_File:
+        log.info("Processing File");
+        gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+        break;
+
+    case Manual_File:
+        log.info("Manual File");
+        gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+        break;
+
+    case Response_File:
+        log.info("Response File");
+        gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+        break;
+
+    default:
+        throw new ReportingException(
+                ReportingErrorCode.INVALID_REQUEST_ERROR_CODE,
+                "Invalid Record Type");
+}
+
+
+
+
+
+
+
+
+
 
 private RecordType validateRecordType(UUID gstInfoId) {
 
