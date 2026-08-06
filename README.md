@@ -1,3 +1,11 @@
+
+ALTER TABLE GST_REPORT_INFO
+MODIFY (RECORD_TYPE VARCHAR2(200) NOT NULL);
+
+
+
+
+
 private void processReportStatus(GstReportStatusDto gstReportStatusDto) {
 
     RecordType recordType = validateRecordType(gstReportStatusDto.getGstInfoId());
