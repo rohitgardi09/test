@@ -4,6 +4,66 @@ public void updateGstReportStatus(GstReportStatusDto gstReportStatusDto) {
     log.info("GstReportInfoService - GstReportStatus updating for id : {}",
             gstReportStatusDto.getGstInfoId());
 
+    // Response/S3 मधून आलेला file name
+    String fileName = gstReportStatusDto.getS3Path();
+
+    // RES_TAX_ prefix remove कर
+    if (fileName != null && fileName.startsWith("RES_TAX_")) {
+        fileName = fileName.substring("RES_TAX_".length());
+    }
+
+    // DB मधून report info शोध
+    GstReportInfo gstReportInfo = gstReportManagementDao
+            .findByName(fileName)
+            .orElseThrow(() ->
+                    new ReportingException(
+                            NOT_FOUND_ERROR_CODE,
+                            MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, "GST report")));
+
+    // DB मधून आलेला report type DTO मध्ये set कर
+    gstReportStatusDto.setGstReportType(gstReportInfo.getReportType());
+
+    switch (gstReportInfo.getReportType()) {
+
+        case CUSTOMER_GST_REPORT:
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case MERCHANT_GST_REPORT:
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case SUCCESS_GST_REPORT:
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.SUCCESS.getName());
+            break;
+
+        case ERROR_GST_REPORT:
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.FAIL.getName());
+            break;
+
+        default:
+            throw new ReportingException(
+                    NOT_FOUND_ERROR_CODE,
+                    "Invalid Report Type");
+    }
+}
+
+
+
+############
+
+
+
+
+
+
+
+
+public void updateGstReportStatus(GstReportStatusDto gstReportStatusDto) {
+
+    log.info("GstReportInfoService - GstReportStatus updating for id : {}",
+            gstReportStatusDto.getGstInfoId());
+
     // Response मधून आलेला file name
     String fileName = gstReportStatusDto.getFileName();
 
