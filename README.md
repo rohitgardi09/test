@@ -1,4 +1,64 @@
 
+public void updateGstReportStatus(GstReportStatusDto gstReportStatusDto) {
+
+    log.info("GstReportInfoService - GstReportStatus updating for id : {}",
+            gstReportStatusDto.getGstInfoId());
+
+    // Response मधून आलेला file name
+    String fileName = gstReportStatusDto.getFileName();
+
+    // RES_TAX_ prefix remove कर
+    if (fileName != null && fileName.startsWith("RES_TAX_")) {
+        fileName = fileName.substring("RES_TAX_".length());
+    }
+
+    // DB मधून Report Type आणि Month Year आण
+    GstReportInfo gstReportInfo =
+            gstReportManagementDao.findByName(fileName);
+
+    gstReportStatusDto.setGstReportType(gstReportInfo.getReportType());
+    gstReportStatusDto.setMonthYear(gstReportInfo.getMonthYear());
+
+    switch (gstReportStatusDto.getGstReportType()) {
+
+        case CUSTOMER_GST_REPORT:
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case MERCHANT_GST_REPORT:
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case SUCCESS_GST_REPORT:
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.SUCCESS.getName());
+            break;
+
+        case ERROR_GST_REPORT:
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.FAIL.getName());
+            break;
+
+        default:
+            throw new IllegalArgumentException(
+                    "Invalid Report Type : " + gstReportStatusDto.getGstReportType());
+    }
+}
+*#######
+
+GstReportInfo findByName(String fileName);
+
+
+####
+
+SELECT REPORT_TYPE,
+       MONTH_YEAR
+FROM GST_REPORT_INFO
+WHERE NAME = :fileName;
+
+
+
+
+
+
 UPDATE GST_REPORT_INFO
 SET RECORD_TYPE = 'Customer'
 WHERE RECORD_TYPE IS NULL;
