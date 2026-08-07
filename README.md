@@ -1,3 +1,40 @@
+
+{
+  "gstInfoId": 12345,
+  "gstReportType": "SUCCESS_GST_REPORT",
+  "s3Path": "RES_TAX_GST_REPORT_202608.csv"
+}
+
+
+
+
+
+@RestController
+@RequestMapping("/test/gst-report")
+@RequiredArgsConstructor
+public class GstReportTestController {
+
+    private final GstReportInfoService gstReportInfoService;
+
+    @PostMapping("/status")
+    public ResponseEntity<String> updateGstReportStatus(
+            @RequestBody GstReportStatusDto gstReportStatusDto) {
+
+        gstReportInfoService.updateGstReportStatus(gstReportStatusDto);
+
+        return ResponseEntity.ok("GST report status processed successfully");
+    }
+}
+
+
+
+
+
+
+
+
+
+
 public Optional<GstReportInfo> findReportTypeAndMonthYearByName(String fileName) {
     return gstReportInfoRepository.findReportTypeAndMonthYearByName(fileName);
 }
