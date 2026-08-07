@@ -1,4 +1,35 @@
+private void createResponseFileReportInfo(GstReportStatusDto gstReportStatusDto) {
 
+    String fileName = gstReportStatusDto.getS3Path();
+
+    if (fileName != null && fileName.startsWith("RES_TAX_")) {
+        fileName = fileName.substring(8);
+    }
+
+    GstReportInfo existingReport =
+            gstReportManagementDao.findReportTypeAndMonthYearByName(fileName)
+                    .orElseThrow(() -> new ReportingException(
+                            NOT_FOUND_ERROR_CODE,
+                            MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, "GST Report")
+                    ));
+
+    GstReportInfo responseReport = new GstReportInfo();
+
+    responseReport.setReportType(existingReport.getReportType());
+    responseReport.setMonthYear(existingReport.getMonthYear());
+    responseReport.setName(fileName);
+    responseReport.setS3Path(fileName);
+    responseReport.setRecordType(RecordType.GST_RESPONSE_FILE);
+
+    gstReportInfoRepository.save(responseReport);
+}
+
+
+
+
+
+
+####
 {
   "gstInfoId": 12345,
   "gstReportType": "SUCCESS_GST_REPORT",
