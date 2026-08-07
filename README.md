@@ -1,3 +1,18 @@
+GstReportInfo responseReport = new GstReportInfo();
+
+responseReport.setName(gstReportStatusDto.getFileName());
+responseReport.setS3Path(gstReportStatusDto.getS3Path());
+
+responseReport.setReportType(gstReportStatusDto.getGstReportType());
+responseReport.setMonthYear(gstReportStatusDto.getMonthYear());
+
+responseReport.setRecordType(RecordType.GST_RESPONSE_FILE);
+
+gstReportInfoRepository.save(responseReport);
+
+
+
+
 private void createResponseFileReportInfo(GstReportStatusDto gstReportStatusDto) {
 
     String fileName = gstReportStatusDto.getS3Path();
