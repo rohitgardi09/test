@@ -1,3 +1,60 @@
+public Optional<GstReportInfo> findReportTypeAndMonthYearByName(String fileName) {
+    return gstReportInfoRepository.findReportTypeAndMonthYearByName(fileName);
+}
+
+####
+
+@Query("""
+       SELECT g
+       FROM GstReportInfo g
+       WHERE g.name = :name
+       """)
+Optional<GstReportInfo> findReportTypeAndMonthYearByName(@Param("name") String name);
+
+
+####
+
+
+private void updateGstReportStatus(GstReportStatusDto gstReportStatusDto) {
+
+    switch (gstReportStatusDto.getGstReportType()) {
+
+        case MERCHANT_GST_REPORT:
+            log.info("Report Type : MERCHANT_GST_REPORT");
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case CUSTOMER_GST_REPORT:
+            log.info("Report Type : CUSTOMER_GST_REPORT");
+            gstReportManagementDao.updateGstReportStatus(gstReportStatusDto);
+            break;
+
+        case SUCCESS_GST_REPORT:
+            log.info("Report Type : SUCCESS_GST_REPORT");
+            updateReportDetailsFromFileName(gstReportStatusDto);
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.SUCCESS.getName());
+            break;
+
+        case ERROR_GST_REPORT:
+            log.info("Report Type : ERROR_GST_REPORT");
+            updateReportDetailsFromFileName(gstReportStatusDto);
+            updateGstReportDetail(gstReportStatusDto, ReportStatus.FAIL.getName());
+            break;
+
+        default:
+            throw new ReportingException(
+                    NOT_FOUND_ERROR_CODE,
+                    MessageFormat.format(NOT_FOUND_ERROR_MESSAGE,
+                            gstReportStatusDto.getGstReportType()));
+    }
+}
+
+
+
+
+
+#######
+
 private void updateReportDetailsFromFileName(GstReportStatusDto gstReportStatusDto) {
 
     String fileName = gstReportStatusDto.getS3Path();
