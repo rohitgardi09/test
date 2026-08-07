@@ -1,3 +1,30 @@
+private void updateReportDetailsFromFileName(GstReportStatusDto gstReportStatusDto) {
+
+    String fileName = gstReportStatusDto.getS3Path();
+
+    if (fileName != null && fileName.startsWith("RES_TAX_")) {
+        fileName = fileName.substring(8);
+    }
+
+    GstReportInfo gstReportInfo = gstReportManagementDao
+            .findReportTypeAndMonthYearByName(fileName)
+            .orElseThrow(() -> new ReportingException(
+                    NOT_FOUND_ERROR_CODE,
+                    MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, "GST Report")));
+
+    gstReportStatusDto.setGstReportType(gstReportInfo.getReportType());
+    gstReportStatusDto.setMonthYear(gstReportInfo.getMonthYear());
+}
+
+
+
+
+
+
+
+
+
+
 @Repository
 public interface GstReportInfoRepository extends JpaRepository<GstReportInfo, UUID> {
 
