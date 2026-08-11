@@ -1,3 +1,25 @@
+private String parseReportFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
+    String fileName = gstReportStatusDto.getS3Path();
+
+    if (ReportStatus.SUCCESS.getName().equals(gstProcessingStatus)
+            && fileName.startsWith(SUCCESS_RES_TAX_REPORT_TYPE)) {
+        return fileName.substring(SUCCESS_RES_TAX_REPORT_TYPE.length());
+
+    } else if (ReportStatus.FAIL.getName().equals(gstProcessingStatus)
+            && fileName.startsWith(FAIL_ERR_REPORT_TYPE)) {
+        return fileName.substring(FAIL_ERR_REPORT_TYPE.length());
+    }
+
+    throw new ReportingException(
+            NOT_FOUND_ERROR_CODE,
+            MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, gstProcessingStatus)
+    );
+}
+
+
+
+
+
 private String getFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
     String fileName = gstReportStatusDto.getS3Path();
 
