@@ -1,157 +1,42 @@
-private String parseReportFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
-    String fileName = gstReportStatusDto.getS3Path();
 
-    if (ReportStatus.SUCCESS.getName().equals(gstProcessingStatus)
-            && fileName.startsWith(SUCCESS_RES_TAX_REPORT_TYPE)) {
-        return fileName.substring(SUCCESS_RES_TAX_REPORT_TYPE.length());
+    private String parseReportFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
 
-    } else if (ReportStatus.FAIL.getName().equals(gstProcessingStatus)
-            && fileName.startsWith(FAIL_ERR_REPORT_TYPE)) {
-        return fileName.substring(FAIL_ERR_REPORT_TYPE.length());
-    }
-
-    throw new ReportingException(
-            NOT_FOUND_ERROR_CODE,
-            MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, gstProcessingStatus)
-    );
-}
-
-
-
-
-
-private String getFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
-    String fileName = gstReportStatusDto.getS3Path();
-
-    if (ReportStatus.SUCCESS.getName().equals(gstProcessingStatus)
-            && fileName.startsWith("RES_TAX_")) {
-        return fileName.substring(8);
-    }
-
-    if (ReportStatus.FAIL.getName().equals(gstProcessingStatus)
-            && fileName.startsWith("ERR_")) {
-        return fileName.substring(4);
-    }
-
-    return fileName;
-}
-
-
-
-
-
-
-
-private void updateReportDetailsFromFileName(
-        GstReportStatusDto gstReportStatusDto,
-        List<Object[]> gstnProcessingDtoList,
-        String gstProcessingStatus) {
-
-    try {
         String fileName = gstReportStatusDto.getS3Path();
 
-        if (fileName != null && fileName.startsWith("RES_TAX_")) {
-            fileName = fileName.substring(8);
+        if (ReportStatus.SUCCESS.getName().equals(gstProcessingStatus) && fileName.startsWith(SUCCESS_GST_REPORT_ACK_FILE_PREFIX)) {
+            return fileName.substring(SUCCESS_RES_TAX_LENGTH);
+        } else if (ReportStatus.FAIL.getName().equals(gstProcessingStatus) && fileName.startsWith(ERROR_GST_REPORT_ACK_FILE_PREFIX)) {
+            return fileName.substring(FAIL_ERR_LENGTH);
         }
+        throw new ReportingException(NOT_FOUND_ERROR_CODE, MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, gstProcessingStatus));
+    }
 
-        GstReportInfo existingReport =
-                gstReportManagementDao.findReportTypeAndMonthYearByName(fileName);
+    private void saveGstnReportInfo(GstReportStatusDto gstReportStatusDto, List<Object[]> gstnProcessingDtoList, String gstProcessingStatus) {
 
-        if (existingReport == null) {
-            log.error("GST Report not found for file name: {}", fileName);
-            return;
-        }
+        String fileName = parseReportFileName(gstReportStatusDto,gstProcessingStatus);
+
+        GstReportInfo existingReport = gstReportManagementDao.findReportTypeAndMonthYearByName(fileName).orElseThrow(() -> new ReportingException(NOT_FOUND_ERROR_CODE, MessageFormat.format(NOT_FOUND_ERROR_MESSAGE, "GST Report")));
 
         String s3Path = gstReportStatusDto.getS3Path();
 
-        GstReportInfo responseReport = GstReportInfo.builder()
+        GstReportInfo gstReportInfoData = buildGstReportInfo(gstReportStatusDto, gstProcessingStatus, s3Path, existingReport);
+
+        gstReportInfoRepository.save(gstReportInfoData);
+    }
+
+    private static GstReportInfo buildGstReportInfo(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus, String s3Path, GstReportInfo existingReport) {
+        return GstReportInfo.builder()
                 .name(s3Path)
                 .s3Path(s3Path)
-
-                // Existing table मधून
                 .reportType(existingReport.getReportType())
                 .monthYear(existingReport.getMonthYear())
-
-                // Response details
-                .status(gstProcessingStatus)
                 .remark(gstReportStatusDto.getRemark())
-
-                // Counts
+                .recordType(RecordType.GST_RESPONSE_FILE)
                 .totalCount(gstReportStatusDto.getTotalCount())
                 .failedCount(gstReportStatusDto.getFailedCount())
                 .inprogressCount(gstReportStatusDto.getInprogressCount())
                 .successCount(gstReportStatusDto.getSuccessCount())
-
                 .sftpPath(gstReportStatusDto.getSftpPath())
-                .recordType(RecordType.GST_RESPONSE_FILE)
+                .status(gstProcessingStatus)
                 .build();
-
-        gstReportInfoRepository.save(responseReport);
-
-    } catch (Exception ex) {
-        log.error(
-                "Error while creating GST response report for S3 path: {}",
-                gstReportStatusDto.getS3Path(),
-                ex
-        );
-        throw ex;
     }
-}
-
-
-
-
-
-
-#####
-GstReportInfo responseReport = new GstReportInfo();
-
-String s3Path = gstReportStatusDto.getS3Path();
-
-responseReport.setName(s3Path);
-responseReport.setS3Path(s3Path);
-
-// Existing GST report table मधून values घ्या
-responseReport.setReportType(existingReport.getReportType());
-responseReport.setMonthYear(existingReport.getMonthYear());
-
-responseReport.setRecordType(RecordType.GST_RESPONSE_FILE);
-
-responseReport.setStatus(gstReportStatusDto.getStatus());
-responseReport.setRemark(gstReportStatusDto.getRemark());
-
-responseReport.setTotalCount(gstReportStatusDto.getTotalCount());
-responseReport.setFailedCount(gstReportStatusDto.getFailedCount());
-responseReport.setInprogressCount(gstReportStatusDto.getInprogressCount());
-responseReport.setSuccessCount(gstReportStatusDto.getSuccessCount());
-
-gstReportInfoRepository.save(responseReport);
-
-#₹₹₹₹
-
-
-
-
-
-
-GstReportInfo responseReport = new GstReportInfo();
-
-String s3Path = gstReportStatusDto.getS3Path();
-
-responseReport.setName(s3Path);
-responseReport.setS3Path(s3Path);
-
-responseReport.setReportType(gstReportStatusDto.getGstReportType());
-responseReport.setMonthYear(gstReportStatusDto.getMonthYear());
-
-responseReport.setRecordType(RecordType.GST_RESPONSE_FILE);
-
-responseReport.setStatus(gstReportStatusDto.getStatus());
-responseReport.setRemark(gstReportStatusDto.getRemark());
-
-responseReport.setTotalCount(gstReportStatusDto.getTotalCount());
-responseReport.setFailedCount(gstReportStatusDto.getFailedCount());
-responseReport.setInprogressCount(gstReportStatusDto.getInprogressCount());
-responseReport.setSuccessCount(gstReportStatusDto.getSuccessCount());
-
-gstReportInfoRepository.save(responseReport);
