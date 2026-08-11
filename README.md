@@ -1,3 +1,25 @@
+private String getFileName(GstReportStatusDto gstReportStatusDto, String gstProcessingStatus) {
+    String fileName = gstReportStatusDto.getS3Path();
+
+    if (ReportStatus.SUCCESS.getName().equals(gstProcessingStatus)
+            && fileName.startsWith("RES_TAX_")) {
+        return fileName.substring(8);
+    }
+
+    if (ReportStatus.FAIL.getName().equals(gstProcessingStatus)
+            && fileName.startsWith("ERR_")) {
+        return fileName.substring(4);
+    }
+
+    return fileName;
+}
+
+
+
+
+
+
+
 private void updateReportDetailsFromFileName(
         GstReportStatusDto gstReportStatusDto,
         List<Object[]> gstnProcessingDtoList,
