@@ -1,15 +1,25 @@
-Dear Sir/Madam,
-
-Thank you for attending the GST demo. During our discussion with the Product Team and Testing Team, the below pointers were raised:
-
-1. Need to handle international transactions.
-2. Create GST Report with Settlement Date and Settlement Status instead of Created Date.
-3. For the Update button in Transaction FE, provide an Edit icon.
-4. Disable future months in the Report Filter in Admin Panel.
-5. Need to discuss the GSTN form in Transaction FE — initially show only the GSTN Number, and after validation, show the other details.
-
-Please add any additional observations if anything is missed.
-
-Thanks & Regards,
-Rohit Gardi
-Junior Software Developer | SBIePay
+/**
+ * POST /gst/upload
+ *
+ * Description:
+ * Uploads a GST report file manually for the specified report type and month-year.
+ * The request accepts GST report details and the report file using multipart/form-data.
+ *
+ * Example:
+ * POST /gst/upload
+ * Content-Type: multipart/form-data
+ *
+ * gstUploadManualDto:
+ * Description: GST report details including report type, month-year and remark.
+ *
+ * {
+ *   "reportType": "MERCHANT_GST_REPORT",
+ *   "monthYear": "202606",
+ *   "remark": "Done"
+ * }
+ *
+ * file:
+ * Description: GST report file to be uploaded in CSV format.
+ *
+ * DET_CONS_GSTR1_19082026_EPY_19938.csv
+ */
