@@ -1,8 +1,16 @@
-// ============================================================
-// FILE 1
-// Path:
-// src/main/java/com/epay/reporting/scheduler/GstReportAckScheduler.java
-// ============================================================
+============================================================
+1. application.yml
+============================================================
+
+scheduled:
+  ack:
+    max-days: 7
+    cron: "0 0 * * * *"
+
+
+============================================================
+2. GstReportAckScheduler.java
+============================================================
 
 package com.epay.reporting.scheduler;
 
@@ -20,227 +28,108 @@ public class GstReportAckScheduler {
 
     private final GstReportInfoService gstReportInfoService;
 
-    @Value("${gst-report.ack.max-days}")
+    @Value("${scheduled.ack.max-days:7}")
     private int maxDays;
 
-    @Scheduled(cron = "${gst-report.ack.scheduler.cron}")
+    @Scheduled(cron = "${scheduled.ack.cron}")
     public void markAckNotReceived() {
 
         log.info(
-                "GST report ACK scheduler started for records older than {} days",
-                maxDays);
+                "GST report ACK scheduler started. Max days: {}",
+                maxDays
+        );
 
         try {
+
             int updatedRecords =
                     gstReportInfoService.markAckNotReceived(maxDays);
 
             log.info(
                     "GST report ACK scheduler completed. Records updated: {}",
-                    updatedRecords);
+                    updatedRecords
+            );
 
         } catch (Exception exception) {
+
             log.error(
                     "Error while marking GST reports as ACK_NOT_RECEIVED",
-                    exception);
+                    exception
+            );
         }
     }
 }
 
 
-// ============================================================
-// FILE 2
-// Existing file:
-// src/main/java/com/epay/reporting/service/GstReportInfoService.java
-//
-// Existing class मध्ये खालील method add कर.
-// ============================================================
+============================================================
+3. GstReportInfoService.java
+============================================================
 
 /*
-
-import java.time.LocalDateTime;
-
-*/
+ * Existing GstReportInfoService class मध्ये
+ * खालील method add कर.
+ */
 
 public int markAckNotReceived(int maxDays) {
 
     log.info(
-            "Processing GST reports where ACK is not received within {} days",
-            maxDays);
+            "Processing GST reports for ACK timeout. Max days: {}",
+            maxDays
+    );
 
-    LocalDateTime cutoffDate =
-            LocalDateTime.now().minusDays(maxDays);
-
-    int updatedRecords =
-            gstReportInfoDao.markAckNotReceived(cutoffDate);
+    long cutoffTime = System.currentTimeMillis()
+            - (maxDays * 24L * 60L * 60L * 1000L);
 
     log.info(
-            "GST report ACK_NOT_RECEIVED processing completed. Records updated: {}",
-            updatedRecords);
+            "GST report ACK cutoff time: {}",
+            cutoffTime
+    );
+
+    int updatedRecords =
+            gstReportInfoDao.markAckNotReceived(cutoffTime);
+
+    log.info(
+            "GST report ACK timeout processing completed. Records updated: {}",
+            updatedRecords
+    );
 
     return updatedRecords;
 }
 
 
-// ============================================================
-// FILE 3
-// Existing file:
-// src/main/java/com/epay/reporting/dao/GstReportInfoDao.java
-//
-// Existing class मध्ये खालील method add कर.
-// ============================================================
+============================================================
+4. GstReportInfoDao.java
+============================================================
 
 /*
-
-import java.time.LocalDateTime;
-import com.epay.reporting.model.ReportStatus;
-
-*/
-
-/**
- * Marks GST report records as CANCELLED and updates the remark
- * as ACK_NOT_RECEIVED when acknowledgement is not received
- * within configured maximum days.
- *
- * @param cutoffDate cutoff date for acknowledgement
- * @return number of records updated
+ * Existing GstReportInfoDao class मध्ये
+ * खालील method add कर.
  */
-public int markAckNotReceived(LocalDateTime cutoffDate) {
+
+public int markAckNotReceived(long cutoffTime) {
 
     log.info(
-            "Marking GST report records as CANCELLED where ACK is not received before {}",
-            cutoffDate);
-
-    return gstReportInfoRepository.markAckNotReceived(
-            ReportStatus.CANCELLED,
-            cutoffDate);
-}
-
-
-// ============================================================
-// FILE 4
-// Path:
-// src/main/java/com/epay/reporting/repository/GstReportInfoRepository.java
-// ============================================================
-
-package com.epay.reporting.repository;
-
-import com.epay.reporting.entity.GstReportInfo;
-import com.epay.reporting.model.ReportStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-public interface GstReportInfoRepository
-        extends JpaRepository<GstReportInfo, UUID> {
-
-    /**
-     * Marks GST report records as CANCELLED and updates the
-     * remark as ACK_NOT_RECEIVED when acknowledgement is not
-     * received within configured maximum days.
-     *
-     * @param cancelledStatus cancelled report status
-     * @param cutoffDate cutoff date for acknowledgement
-     * @return number of records updated
-     */
-    @Modifying
-    @Transactional
-    @Query("""
-            UPDATE GstReportInfo g
-               SET g.status = :cancelledStatus,
-                   g.remark = 'ACK_NOT_RECEIVED'
-             WHERE g.status <> :cancelledStatus
-               AND g.pushStatus = 'SUCCESS'
-               AND g.pushStatusDate <= :cutoffDate
-            """)
-    int markAckNotReceived(
-            @Param("cancelledStatus") ReportStatus cancelledStatus,
-            @Param("cutoffDate") LocalDateTime cutoffDate
-    );
-}
-
-
-// ============================================================
-// FILE 5
-// resources/application.yml
-//
-// Existing application.yml मध्ये हा configuration add कर.
-// ============================================================
-
-gst-report:
-  ack:
-    max-days: 7
-    scheduler:
-      cron: "0 0 * * * *"
-
-
-
-
-      ######
-
-
-      हो 👍 सगळं एकाच ठिकाणी copy-paste करता येईल असं देतो. फक्त respective files मध्ये respective code टाक.
-
-# ============================================================
-# application.yml
-# ============================================================
-
-gst-report:
-  ack:
-    max-days: 7
-    scheduler:
-      cron: "0 0 * * * *"
-
-// ============================================================
-// GstReportAckScheduler.java
-// ============================================================
-
-package com.epay.reporting.scheduler;
-
-import com.epay.reporting.service.GstReportInfoService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-@Component
-@RequiredArgsConstructor
-public class GstReportAckScheduler {
-
-    private final GstReportInfoService gstReportInfoService;
-
-    @Value("${gst-report.ack.max-days}")
-    private int maxDays;
-
-    @Scheduled(cron = "${gst-report.ack.scheduler.cron}")
-    public void markAckNotReceived() {
-
-        gstReportInfoService.markAckNotReceived(maxDays);
-    }
-}
-
-// ============================================================
-// GstReportInfoService.java
-// ============================================================
-
-public int markAckNotReceived(int maxDays) {
-
-    long cutoffTime = System.currentTimeMillis()
-            - (maxDays * 24L * 60L * 60L * 1000L);
-
-    return gstReportInfoRepository.markAckNotReceived(
-            ReportStatus.CANCELLED,
+            "Marking GST reports as CANCELLED for push date before cutoff: {}",
             cutoffTime
     );
+
+    int updatedRecords =
+            gstReportInfoRepository.markAckNotReceived(
+                    ReportStatus.CANCELLED,
+                    cutoffTime
+            );
+
+    log.info(
+            "GST reports marked as CANCELLED. Records updated: {}",
+            updatedRecords
+    );
+
+    return updatedRecords;
 }
 
-// ============================================================
-// GstReportInfoRepository.java
-// ============================================================
+
+============================================================
+5. GstReportInfoRepository.java
+============================================================
 
 package com.epay.reporting.repository;
 
@@ -265,7 +154,6 @@ public interface GstReportInfoRepository
                g.remark = 'ACK_NOT_RECEIVED'
          WHERE g.status <> :cancelledStatus
            AND g.pushStatus = 'UPLOAD_SUCCESS'
-           AND g.ackReceived = false
            AND g.pushStatusDate <= :cutoffTime
         """)
     int markAckNotReceived(
@@ -274,6 +162,80 @@ public interface GstReportInfoRepository
     );
 }
 
-Flow: pushStatusDate पासून 7 दिवस पूर्ण → ackReceived = false → status = CANCELLED आणि remark = ACK_NOT_RECEIVED.
 
-cron: "0 0 * * * *" मुळे हे दर तासाला 00 मिनिटाला check होईल.
+============================================================
+6. FINAL BUSINESS LOGIC
+============================================================
+
+pushStatus = UPLOAD_SUCCESS
+        +
+pushStatusDate + 7 days <= current time
+        +
+status != CANCELLED
+        ↓
+status = CANCELLED
+remark = ACK_NOT_RECEIVED
+
+
+============================================================
+7. EXAMPLE
+============================================================
+
+Push Date       : 24-Aug-2026
+Max Days        : 7
+Current Date    : 31-Aug-2026
+
+7 days completed
+        ↓
+Scheduler checks record
+        ↓
+pushStatus = UPLOAD_SUCCESS
+        ↓
+pushStatusDate <= cutoffTime
+        ↓
+Status  = CANCELLED
+Remark  = ACK_NOT_RECEIVED
+
+
+============================================================
+8. CRON
+============================================================
+
+0 0 * * * *
+
+Scheduler प्रत्येक तासाला minute 00 ला चालेल.
+
+01:00
+02:00
+03:00
+...
+23:00
+
+
+============================================================
+IMPORTANT
+============================================================
+
+DB मध्ये ackReceived field नाही.
+
+म्हणून:
+
+ackReceived = false
+
+ही condition वापरलेली नाही.
+
+ACK आला/नाही हे existing status/remark/business
+flow वर depend असेल.
+
+या scheduler मध्ये आपण फक्त:
+
+1. SFTP push SUCCESS आहे का?
+2. Push date पासून configured 7 days झाले का?
+3. Record आधीच CANCELLED नाही ना?
+
+हे check करतो.
+
+Eligible record मिळाला तर:
+
+STATUS = CANCELLED
+REMARK = ACK_NOT_RECEIVED
