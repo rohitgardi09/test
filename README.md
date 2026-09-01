@@ -1,3 +1,57 @@
+
+@Transactional
+public void cancelGstReport(String id, GstReportCancelDto request) {
+
+    log.info("Cancelling GST report for id: {}, remark: {}", id, request.getRemark());
+
+    UUID reportId;
+
+    try {
+        reportId = UUID.fromString(id);
+    } catch (IllegalArgumentException exception) {
+        log.error("Invalid GST report id: {}", id, exception);
+
+        throw new ReportingException(
+                ErrorConstants.NOT_FOUND_ERROR_CODE,
+                MessageFormat.format(
+                        ErrorConstants.NOT_FOUND_ERROR_MESSAGE,
+                        id
+                )
+        );
+    }
+
+    int updatedRecords = gstnReportInfoDao.cancelGstReportById(
+            reportId,
+            ReportStatus.CANCELLED.getName(),
+            request.getRemark()
+    );
+
+    if (updatedRecords == 0) {
+        log.error(
+                "GST report cannot be cancelled. Either report not found or current status is not UPLOAD_SUCCESS. id: {}",
+                id
+        );
+
+        throw new ReportingException(
+                ErrorConstants.NOT_FOUND_ERROR_CODE,
+                MessageFormat.format(
+                        ErrorConstants.NOT_FOUND_ERROR_MESSAGE,
+                        id
+                )
+        );
+    }
+
+    log.info("GST report cancelled successfully for id: {}", id);
+}
+
+######
+
+
+
+
+
+
+
 @Modifying
 @Transactional
 @Query("""
