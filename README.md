@@ -1,3 +1,21 @@
+Scheduler:
+checkGstReportAckScheduler()
+
+Service:
+processGstReportAckStatus()
+
+DAO:
+markAckNotReceivedReports()
+
+Repository:
+updateStatusAndRemarkForAckNotReceivedAfterMaxDays()
+
+
+
+
+
+
+
 ============================================================
 1. application.yml
 ============================================================
