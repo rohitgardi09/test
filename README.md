@@ -1,3 +1,130 @@
+// ============================================================
+// GstReportCancelDto.java
+// ============================================================
+
+package com.epay.reporting.dto;
+
+import lombok.Data;
+
+@Data
+public class GstReportCancelDto {
+
+    private String remark;
+}
+
+
+// ============================================================
+// GstReportController.java
+// ============================================================
+
+@PostMapping("/cancel/{id}")
+@Operation(summary = "Cancel GST report")
+public ReportingResponse<String> cancelGstReport(
+        @PathVariable("id") String id,
+        @Valid @RequestBody GstReportCancelDto request) {
+
+    log.info("Received GST report cancellation request for id: {}", id);
+
+    gstReportInfoService.cancelGstReport(id, request);
+
+    return ReportingResponse.<String>builder()
+            .status(ResponseStatus.SUCCESS)
+            .message("GST report cancelled successfully")
+            .build();
+}
+
+
+// ============================================================
+// GstReportInfoService.java
+// ============================================================
+
+@Transactional
+public void cancelGstReport(String id, GstReportCancelDto request) {
+
+    log.info("Cancelling GST report for id: {}, remark: {}",
+            id, request.getRemark());
+
+    UUID reportId;
+
+    try {
+        reportId = UUID.fromString(id);
+    } catch (IllegalArgumentException exception) {
+
+        log.error("Invalid GST report id: {}", id, exception);
+
+        throw new ReportingException(
+                ErrorConstants.NOT_FOUND_ERROR_CODE,
+                MessageFormat.format(
+                        ErrorConstants.NOT_FOUND_ERROR_MESSAGE,
+                        id));
+    }
+
+    GstReportInfo gstReportInfo = gstReportInfoDao.findById(reportId)
+            .orElseThrow(() -> new ReportingException(
+                    ErrorConstants.NOT_FOUND_ERROR_CODE,
+                    MessageFormat.format(
+                            ErrorConstants.NOT_FOUND_ERROR_MESSAGE,
+                            id)));
+
+    if (!ReportStatus.UPLOAD_SUCCESS.getName()
+            .equals(gstReportInfo.getStatus())) {
+
+        log.info(
+                "GST report cannot be cancelled. id: {}, current status: {}",
+                id,
+                gstReportInfo.getStatus());
+
+        throw new ReportingException(
+                ErrorConstants.INVALID_REQUEST_ERROR_CODE,
+                "GST report can be cancelled only when status is UPLOAD_SUCCESS");
+    }
+
+    gstReportInfoDao.updateGstStatusById(
+            reportId,
+            ReportStatus.CANCELLED.getName(),
+            request.getRemark());
+
+    log.info("GST report cancelled successfully for id: {}", id);
+}
+
+
+// ============================================================
+// GstReportInfoDao.java
+// ============================================================
+
+public Optional<GstReportInfo> findById(UUID id) {
+    return gstReportInfoRepository.findById(id);
+}
+
+@Transactional
+public void updateGstStatusById(
+        UUID id,
+        String gstStatus,
+        String remark) {
+
+    gstReportInfoRepository.updateGstStatusById(
+            id,
+            gstStatus,
+            remark);
+}
+
+
+// ============================================================
+// GstReportInfoRepository.java
+// ============================================================
+
+@Modifying
+@Transactional
+@Query("""
+        UPDATE GstReportInfo g
+        SET g.status = :gstStatus,
+            g.remark = :remark
+        WHERE g.id = :id
+        """)
+void updateGstStatusById(
+        @Param("id") UUID id,
+        @Param("gstStatus") String gstStatus,
+        @Param("remark") String remark);
 ============================================================
 1. GstReportCancelDto.java
 ============================================================
