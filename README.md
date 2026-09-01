@@ -1,3 +1,25 @@
+@Modifying
+@Transactional
+@Query("""
+        UPDATE GstReportInfo g
+        SET g.status = :gstStatus,
+            g.remark = :remark
+        WHERE g.id = :id
+          AND g.status = 'UPLOAD_SUCCESS'
+        """)
+int cancelGstReportById(
+        @Param("id") UUID id,
+        @Param("gstStatus") String gstStatus,
+        @Param("remark") String remark);
+
+
+
+
+        public int cancelGstReportById(UUID id, String gstStatus, String remark) {
+    return gstReportInfoRepository.cancelGstReportById(id, gstStatus, remark);
+}
+
+
 // ============================================================
 // GstReportCancelDto.java
 // ============================================================
