@@ -1,3 +1,224 @@
+============================================================
+1. GstReportCancelDto.java
+============================================================
+
+package com.epay.reporting.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class GstReportCancelDto {
+
+    @NotBlank(message = "Remark is required")
+    private String remark;
+}
+
+
+============================================================
+2. GstReportController.java
+============================================================
+
+@PostMapping("/cancel/{id}")
+public ReportingResponse<String> cancelGstReport(
+        @PathVariable("id") String id,
+        @Valid @RequestBody GstReportCancelDto request) {
+
+    log.info(
+            "Received GST report cancellation request for id: {}",
+            id
+    );
+
+    gstReportInfoService.cancelGstReport(id, request);
+
+    return ReportingResponse.<String>builder()
+            .status(ResponseStatus.SUCCESS)
+            .message("GST report cancelled successfully")
+            .data("GST report cancelled successfully")
+            .build();
+}
+
+
+============================================================
+3. GstReportInfoService.java
+============================================================
+
+@Transactional
+public void cancelGstReport(
+        String id,
+        GstReportCancelDto request) {
+
+    log.info(
+            "Cancelling GST report for id: {}",
+            id
+    );
+
+    UUID reportId;
+
+    try {
+
+        reportId = UUID.fromString(id);
+
+    } catch (IllegalArgumentException exception) {
+
+        log.error(
+                "Invalid GST report id: {}",
+                id,
+                exception
+        );
+
+        throw new ReportingException(
+                "Invalid GST report id"
+        );
+    }
+
+    GstReportInfo gstReportInfo =
+            gstReportInfoDao.findById(reportId)
+                    .orElseThrow(() ->
+                            new ReportingException(
+                                    "GST report not found for id: " + id
+                            )
+                    );
+
+    log.info(
+            "GST report found. Id: {}, Current status: {}",
+            id,
+            gstReportInfo.getStatus()
+    );
+
+    if (ReportStatus.CANCELLED.getName()
+            .equals(gstReportInfo.getStatus())) {
+
+        throw new ReportingException(
+                "GST report is already cancelled"
+        );
+    }
+
+    int updatedRecords =
+            gstReportInfoDao.cancelGstReport(
+                    reportId,
+                    request.getRemark()
+            );
+
+    if (updatedRecords == 0) {
+
+        throw new ReportingException(
+                "GST report could not be cancelled"
+        );
+    }
+
+    log.info(
+            "GST report cancelled successfully. Id: {}",
+            id
+    );
+}
+
+
+============================================================
+4. GstReportInfoDao.java
+============================================================
+
+public int cancelGstReport(
+        UUID id,
+        String remark) {
+
+    log.info(
+            "Cancelling GST report in database. Id: {}",
+            id
+    );
+
+    int updatedRecords =
+            gstReportInfoRepository.cancelGstReportById(
+                    id,
+                    ReportStatus.CANCELLED.getName(),
+                    remark
+            );
+
+    log.info(
+            "GST report cancellation completed. Records updated: {}",
+            updatedRecords
+    );
+
+    return updatedRecords;
+}
+
+
+============================================================
+5. GstReportInfoRepository.java
+============================================================
+
+@Modifying
+@Transactional
+@Query("""
+        UPDATE GstReportInfo g
+           SET g.status = :gstStatus,
+               g.remark = :remark
+         WHERE g.id = :id
+        """)
+int cancelGstReportById(
+        @Param("id") UUID id,
+        @Param("gstStatus") String gstStatus,
+        @Param("remark") String remark
+);
+
+
+============================================================
+6. API
+============================================================
+
+POST /report/v1/gst/cancel/{id}
+
+
+============================================================
+7. Request Body
+============================================================
+
+{
+    "remark": "Acknowledgement not received within maximum days"
+}
+
+
+============================================================
+8. Database Update
+============================================================
+
+status = CANCELLED
+remark = <remark received from frontend>
+
+
+============================================================
+9. COMPLETE FLOW
+============================================================
+
+Frontend
+    ↓
+POST /report/v1/gst/cancel/{id}
+    ↓
+GstReportController
+    ↓
+cancelGstReport()
+    ↓
+GstReportInfoService
+    ↓
+cancelGstReport()
+    ↓
+GstReportInfoDao
+    ↓
+cancelGstReport()
+    ↓
+GstReportInfoRepository
+    ↓
+cancelGstReportById()
+    ↓
+DB
+    ↓
+STATUS = CANCELLED
+REMARK = Frontend Remark
+
+
+
+
+
 processGstReportAckCheck()
 
 
