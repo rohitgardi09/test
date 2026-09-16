@@ -1,3 +1,24 @@
+public static ApiRequestResponseLog buildApiRequestResponseLog(
+        Object request,
+        Object response,
+        String errorCode,
+        String errorMessage) {
+
+    ApiRequestResponseLog log = new ApiRequestResponseLog();
+
+    log.setRequest(objectMapper.writeValueAsString(request));
+    log.setResponse(objectMapper.writeValueAsString(response));
+    log.setErrorCode(errorCode);
+    log.setErrorMessage(errorMessage);
+
+    return log;
+}
+
+
+
+
+
+
 --liquibase formatted sql
 --changeset TRANSACTION:122
 
