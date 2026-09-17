@@ -1,3 +1,384 @@
+============================================================
+1. LIQUIBASE SQL
+File: xxxx_api_request_response_log.sql
+============================================================
+
+--liquibase formatted sql
+
+--changeset rohit:1
+
+CREATE TABLE API_REQUEST_RESPONSE_LOG
+(
+    ID              RAW(16) DEFAULT SYS_GUID(),
+    CORRELATION_ID  VARCHAR2(100 BYTE),
+    TYPE            VARCHAR2(20 BYTE),
+    URL             VARCHAR2(1000 BYTE),
+    BODY            CLOB,
+
+    CONSTRAINT API_REQUEST_RESPONSE_LOG_PK
+        PRIMARY KEY (ID)
+);
+
+
+============================================================
+2. ApiRequestResponseLog.java
+Package: com.epay.cs.entity
+============================================================
+
+package com.epay.cs.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "API_REQUEST_RESPONSE_LOG")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ApiRequestResponseLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "ID")
+    private UUID id;
+
+    @Column(name = "CORRELATION_ID")
+    private String correlationId;
+
+    @Column(name = "TYPE")
+    private String type;
+
+    @Column(name = "URL")
+    private String url;
+
+    @Lob
+    @Column(name = "BODY")
+    private String body;
+}
+
+
+============================================================
+3. ApiRequestResponseLogRepository.java
+Package: com.epay.cs.repository
+============================================================
+
+package com.epay.cs.repository;
+
+import com.epay.cs.entity.ApiRequestResponseLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface ApiRequestResponseLogRepository
+        extends JpaRepository<ApiRequestResponseLog, UUID> {
+}
+
+
+============================================================
+4. ApiLogTaskExecutorConfig.java
+Package: com.epay.cs.config
+============================================================
+
+package com.epay.cs.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+@Configuration
+public class ApiLogTaskExecutorConfig {
+
+    @Bean(name = "apiLogTaskExecutor")
+    public ThreadPoolTaskExecutor apiLogTaskExecutor() {
+
+        ThreadPoolTaskExecutor executor =
+                new ThreadPoolTaskExecutor();
+
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix("api-log-");
+
+        executor.initialize();
+
+        return executor;
+    }
+}
+
+
+============================================================
+5. ApiRequestResponseLogService.java
+Package: com.epay.cs.service
+============================================================
+
+package com.epay.cs.service;
+
+import com.epay.cs.entity.ApiRequestResponseLog;
+import com.epay.cs.repository.ApiRequestResponseLogRepository;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class ApiRequestResponseLogService {
+
+    private final ApiRequestResponseLogRepository repository;
+
+    private final ThreadPoolTaskExecutor apiLogTaskExecutor;
+
+    private final BlockingQueue<ApiRequestResponseLog> buffer =
+            new LinkedBlockingQueue<>();
+
+    public ApiRequestResponseLogService(
+            ApiRequestResponseLogRepository repository,
+            @Qualifier("apiLogTaskExecutor")
+            ThreadPoolTaskExecutor apiLogTaskExecutor) {
+
+        this.repository = repository;
+        this.apiLogTaskExecutor = apiLogTaskExecutor;
+    }
+
+    @PostConstruct
+    public void init() {
+
+        apiLogTaskExecutor.execute(
+                this::saveAndFlush
+        );
+    }
+
+    public void buffer(
+            String correlationId,
+            String type,
+            String url,
+            String body) {
+
+        ApiRequestResponseLog log =
+                new ApiRequestResponseLog();
+
+        log.setCorrelationId(correlationId);
+        log.setType(type);
+        log.setUrl(url);
+        log.setBody(body);
+
+        buffer.offer(log);
+    }
+
+    private void saveAndFlush() {
+
+        while (true) {
+
+            try {
+
+                List<ApiRequestResponseLog> batch =
+                        new ArrayList<>();
+
+                ApiRequestResponseLog first =
+                        buffer.poll(
+                                1,
+                                TimeUnit.SECONDS
+                        );
+
+                if (first != null) {
+
+                    batch.add(first);
+
+                    buffer.drainTo(
+                            batch,
+                            49
+                    );
+
+                    repository.saveAll(batch);
+                }
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+
+============================================================
+6. ApiRequestResponseLogFilter.java
+Package: com.epay.cs.filter
+============================================================
+
+package com.epay.cs.filter;
+
+import com.epay.cs.service.ApiRequestResponseLogService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class ApiRequestResponseLogFilter
+        extends OncePerRequestFilter {
+
+    private final ApiRequestResponseLogService logService;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        ContentCachingRequestWrapper requestWrapper =
+                new ContentCachingRequestWrapper(request);
+
+        ContentCachingResponseWrapper responseWrapper =
+                new ContentCachingResponseWrapper(response);
+
+        String correlationId =
+                request.getHeader("X-Correlation-ID");
+
+        if (correlationId == null ||
+                correlationId.isBlank()) {
+
+            correlationId =
+                    UUID.randomUUID().toString();
+        }
+
+        String url =
+                request.getRequestURI();
+
+        try {
+
+            filterChain.doFilter(
+                    requestWrapper,
+                    responseWrapper
+            );
+
+        } finally {
+
+            String requestContentType =
+                    requestWrapper.getContentType();
+
+            String responseContentType =
+                    responseWrapper.getContentType();
+
+            String requestBody =
+                    getRequest(
+                            requestWrapper,
+                            requestContentType
+                    );
+
+            String responseBody =
+                    getResponse(
+                            responseWrapper,
+                            responseContentType
+                    );
+
+            logService.buffer(
+                    correlationId,
+                    "REQUEST",
+                    url,
+                    requestBody
+            );
+
+            logService.buffer(
+                    correlationId,
+                    "RESPONSE",
+                    url,
+                    responseBody
+            );
+
+            responseWrapper.copyBodyToResponse();
+        }
+    }
+
+    private String getRequest(
+            ContentCachingRequestWrapper request,
+            String contentType) {
+
+        if (!isSupportedContentType(contentType)) {
+            return "";
+        }
+
+        byte[] content =
+                request.getContentAsByteArray();
+
+        return new String(
+                content,
+                StandardCharsets.UTF_8
+        );
+    }
+
+    private String getResponse(
+            ContentCachingResponseWrapper response,
+            String contentType) {
+
+        if (!isSupportedContentType(contentType)) {
+            return "";
+        }
+
+        byte[] content =
+                response.getContentAsByteArray();
+
+        return new String(
+                content,
+                StandardCharsets.UTF_8
+        );
+    }
+
+    private boolean isSupportedContentType(
+            String contentType) {
+
+        if (contentType == null ||
+                contentType.isBlank()) {
+
+            return false;
+        }
+
+        String type =
+                contentType.toLowerCase();
+
+        return type.startsWith("application/json")
+                || type.startsWith("text/plain")
+                || type.startsWith("application/xml")
+                || type.startsWith("text/xml");
+    }
+}
+
+
+
+...........
+
+
+
+
+
 
 package com.epay.cs.config;
 
