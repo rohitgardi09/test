@@ -1,4 +1,35 @@
 
+private String setDefaultLoggerMDC(
+        HttpServletRequest request) {
+
+    String correlationId =
+            request.getHeader(
+                    CommunicationConstant.X_CORRELATION_ID);
+
+    if (StringUtils.isEmpty(correlationId)) {
+        correlationId =
+                UUID.randomUUID().toString();
+    }
+
+    LoggerFactoryUtility.putMDC(
+            "correlation",
+            correlationId);
+
+    LoggerFactoryUtility.putMDC(
+            "scenario",
+            request.getRequestURI());
+
+    LoggerFactoryUtility.putMDC(
+            "operation",
+            request.getMethod());
+
+    return correlationId;
+}
+
+
+
+
+
 package com.epay.cs.filter;
 
 import com.epay.cs.constant.CommunicationConstant;
