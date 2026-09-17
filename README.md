@@ -1,3 +1,214 @@
+// ============================================================
+// 1. ApiRequestResponseLog.java
+// Package: entity
+// ============================================================
+
+package com.epay.cs.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "API_REQUEST_RESPONSE_LOG")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ApiRequestResponseLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "ID")
+    private UUID id;
+
+    @Column(name = "CORRELATION_ID")
+    private String correlationId;
+
+    @Lob
+    @Column(name = "REQUEST")
+    private String request;
+
+    @Lob
+    @Column(name = "RESPONSE")
+    private String response;
+}
+
+
+// ============================================================
+// 2. ApiRequestResponseLogRepository.java
+// Package: repository
+// ============================================================
+
+package com.epay.cs.repository;
+
+import com.epay.cs.entity.ApiRequestResponseLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface ApiRequestResponseLogRepository
+        extends JpaRepository<ApiRequestResponseLog, UUID> {
+}
+
+
+// ============================================================
+// 3. ApiRequestResponseLogService.java
+// Package: service
+// ============================================================
+
+package com.epay.cs.service;
+
+import com.epay.cs.entity.ApiRequestResponseLog;
+import com.epay.cs.repository.ApiRequestResponseLogRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class ApiRequestResponseLogService {
+
+    private final ApiRequestResponseLogRepository repository;
+
+    public void save(
+            String correlationId,
+            String request,
+            String response) {
+
+        ApiRequestResponseLog log = new ApiRequestResponseLog();
+
+        log.setCorrelationId(correlationId);
+        log.setRequest(request);
+        log.setResponse(response);
+
+        repository.save(log);
+    }
+}
+
+
+// ============================================================
+// 4. ApiRequestResponseLogFilter.java
+// Package: filter
+// ============================================================
+
+package com.epay.cs.filter;
+
+import com.epay.cs.service.ApiRequestResponseLogService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class ApiRequestResponseLogFilter extends OncePerRequestFilter {
+
+    private final ApiRequestResponseLogService logService;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        ContentCachingRequestWrapper requestWrapper =
+                new ContentCachingRequestWrapper(request);
+
+        ContentCachingResponseWrapper responseWrapper =
+                new ContentCachingResponseWrapper(response);
+
+        String correlationId =
+                request.getHeader("X-Correlation-ID");
+
+        if (correlationId == null || correlationId.isBlank()) {
+            correlationId = UUID.randomUUID().toString();
+        }
+
+        try {
+
+            // Actual API processing
+            filterChain.doFilter(
+                    requestWrapper,
+                    responseWrapper
+            );
+
+        } finally {
+
+            String requestBody =
+                    getRequest(requestWrapper);
+
+            String responseBody =
+                    getResponse(responseWrapper);
+
+            logService.save(
+                    correlationId,
+                    requestBody,
+                    responseBody
+            );
+
+            // Important
+            responseWrapper.copyBodyToResponse();
+        }
+    }
+
+    private String getRequest(
+            ContentCachingRequestWrapper request) {
+
+        byte[] content =
+                request.getContentAsByteArray();
+
+        return new String(
+                content,
+                StandardCharsets.UTF_8
+        );
+    }
+
+    private String getResponse(
+            ContentCachingResponseWrapper response) {
+
+        byte[] content =
+                response.getContentAsByteArray();
+
+        return new String(
+                content,
+                StandardCharsets.UTF_8
+        );
+    }
+}
+
+
+#######
+
+
+
+
+
+
+
+
+
 public static ApiRequestResponseLog buildApiRequestResponseLog(
         Object request,
         Object response,
