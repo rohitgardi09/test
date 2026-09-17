@@ -1,3 +1,123 @@
+
+
+
+String responseContentType = responseWrapper.getContentType();
+
+if (isSupportedContentType(responseContentType)) {
+
+    String responseBody = getResponse(responseWrapper);
+
+    logService.buffer(
+            correlationId,
+            ApiLogConstants.RESPONSE,
+            url,
+            responseBody
+    );
+
+} else {
+
+    log.info(
+            "API response log not saved. Unsupported Content-Type: {}",
+            responseContentType
+    );
+}
+
+
+****
+
+
+String requestContentType = requestWrapper.getContentType();
+
+if (isSupportedContentType(requestContentType)) {
+
+    String requestBody = getRequest(requestWrapper);
+
+    logService.buffer(
+            correlationId,
+            ApiLogConstants.REQUEST,
+            url,
+            requestBody
+    );
+
+} else {
+
+    log.info(
+            "API request log not saved. Unsupported Content-Type: {}",
+            requestContentType
+    );
+}
+
+
+****
+
+private boolean isSupportedContentType(String contentType) {
+
+    if (contentType == null || contentType.isBlank()) {
+        return false;
+    }
+
+    return Arrays.stream(supportedContentTypes.split(","))
+            .map(String::trim)
+            .anyMatch(contentType::startsWith);
+}
+
+
+******
+
+@Value("${api.logging.supported-content-types}")
+private String supportedContentTypes;
+
+
+*********
+
+
+api.logging.supported-content-types=application/json,text/plain,application/xml,text/xml
+
+
+
+********
+
+private boolean isSupportedContentType(
+            String contentType) {
+
+        if (contentType == null ||
+                contentType.isBlank()) {
+
+            return false;
+        }
+
+        List<String> supportedTypes =
+                Arrays.stream(supportedContentTypes.split(","))
+                        .map(String::trim)
+                        .map(String::toLowerCase)
+                        .toList();
+
+        String type =
+                contentType.toLowerCase();
+
+        return supportedTypes.stream()
+                .anyMatch(type::startsWith);
+    }
+
+
+
+
+
+
+api.logging.supported-content-types=application/json,text/plain,application/xml,text/xml
+
+
+
+api:
+  logging:
+    supported-content-types: application/json,text/plain,application/xml,text/xml
+
+    
+
+
+
+
+
 package com.epay.cs.constant;
 
 public final class ApiLogConstants {
