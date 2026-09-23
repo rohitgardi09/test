@@ -1,3 +1,64 @@
+private void validateOtpsByPrefix(List<OtpManagement> otps,
+                                  UnblockUserRequest unblockUserRequest) {
+
+    Map<String, OtpManagement> otpMap = otps.stream()
+            .collect(Collectors.toMap(
+                    otp -> otp.getOtpCode().substring(0, 1),
+                    Function.identity()
+            ));
+
+    validateSmsOtp(
+            otpMap.get(SMS_OTP_PREFIX),
+            SMS_OTP_PREFIX + unblockUserRequest.getSmsOtp()
+    );
+
+    validateEmailOtp(
+            otpMap.get(EMAIL_OTP_PREFIX),
+            EMAIL_OTP_PREFIX + unblockUserRequest.getEmailOtp()
+    );
+}
+
+
+private void validateSmsOtp(OtpManagement otp, String requestOtp) {
+
+    if (otp == null || !otp.getOtpCode().equals(requestOtp)) {
+        throw new MerchantException(
+                INVALID_ERROR_CODE,
+                MessageFormat.format(
+                        INVALID_ERROR_MESSAGE,
+                        "SMS OTP",
+                        INVALID_OTP_MESSAGE
+                )
+        );
+    }
+}
+
+
+private void validateEmailOtp(OtpManagement otp, String requestOtp) {
+
+    if (otp == null || !otp.getOtpCode().equals(requestOtp)) {
+        throw new MerchantException(
+                INVALID_ERROR_CODE,
+                MessageFormat.format(
+                        INVALID_ERROR_MESSAGE,
+                        "Email OTP",
+                        INVALID_OTP_MESSAGE
+                )
+        );
+    }
+}
+
+
+
+
+
+
+@@@@@@@@
+
+
+
+
+
 package com.epay.cs.filter;
 
 import com.epay.cs.constant.CommunicationConstant;
