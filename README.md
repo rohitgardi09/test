@@ -1,3 +1,288 @@
+// ============================================================
+// FILE 1: dto/admin/UserSearchDto.java
+// ============================================================
+
+package com.epay.admin.portal.dto.admin;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserSearchDto {
+    private String adId;
+    private String name;
+    private String emailId;
+    private String phoneNumber;
+}
+
+
+// ============================================================
+// FILE 2: service/admin/LdapUserSearchService.java
+// ============================================================
+
+package com.epay.admin.portal.service.admin;
+
+import com.epay.admin.portal.dto.admin.UserSearchDto;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.filter.AndFilter;
+import org.springframework.ldap.filter.EqualsFilter;
+import org.springframework.ldap.filter.OrFilter;
+import org.springframework.ldap.filter.WhitespaceWildcardsFilter;
+import org.springframework.stereotype.Service;
+
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.SearchControls;
+import java.util.List;
+
+@Service
+public class LdapUserSearchService {
+
+    private final LdapTemplate ldapTemplate;
+
+    @Value("${auth.ldap.user-search-base}")
+    private String userSearchBase;
+
+    public LdapUserSearchService(LdapTemplate ldapTemplate) {
+        this.ldapTemplate = ldapTemplate;
+    }
+
+    // Main method: query validate karun LDAP search karte
+    public List<UserSearchDto> searchUsers(String query) {
+        String searchValue = validateQuery(query);
+        return performLdapSearch(searchValue);
+    }
+
+    // Query validate karte
+    private String validateQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Search query is required");
+        }
+
+        String searchValue = query.trim();
+
+        if (searchValue.length() > 100) {
+            throw new IllegalArgumentException(
+                    "Search query must not exceed 100 characters");
+        }
+
+        return searchValue;
+    }
+
+    // LDAP search filter tayar karte
+    private String buildSearchFilter(String searchValue) {
+        AndFilter filter = new AndFilter();
+
+        OrFilter userTypeFilter = new OrFilter();
+        userTypeFilter.or(
+                new EqualsFilter("objectClass", "user"));
+        userTypeFilter.or(
+                new EqualsFilter("objectClass", "inetOrgPerson"));
+
+        OrFilter searchFilter = new OrFilter();
+        searchFilter.or(
+                new EqualsFilter("sAMAccountName", searchValue));
+        searchFilter.or(
+                new WhitespaceWildcardsFilter("cn", searchValue));
+        searchFilter.or(
+                new WhitespaceWildcardsFilter(
+                        "displayName", searchValue));
+
+        filter.and(userTypeFilter);
+        filter.and(searchFilter);
+
+        return filter.encode();
+    }
+
+    // LDAP madhun matching users retrieve karte
+    private List<UserSearchDto> performLdapSearch(
+            String searchValue) {
+
+        SearchControls controls = new SearchControls();
+        controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        controls.setCountLimit(100);
+        controls.setTimeLimit(5000);
+
+        String filter = buildSearchFilter(searchValue);
+
+        return ldapTemplate.search(
+                userSearchBase,
+                filter,
+                controls,
+                (AttributesMapper<UserSearchDto>) this::mapUser
+        );
+    }
+
+    // LDAP attributes DTO madhye map karte
+    private UserSearchDto mapUser(Attributes attributes)
+            throws NamingException {
+
+        String adId = getAttribute(
+                attributes, "sAMAccountName");
+
+        if (adId == null) {
+            adId = getAttribute(attributes, "uid");
+        }
+
+        String name = getAttribute(
+                attributes, "displayName");
+
+        if (name == null) {
+            name = getAttribute(attributes, "cn");
+        }
+
+        String emailId = getAttribute(
+                attributes, "mail");
+
+        String phoneNumber = getAttribute(
+                attributes, "mobile");
+
+        if (phoneNumber == null) {
+            phoneNumber = getAttribute(
+                    attributes, "telephoneNumber");
+        }
+
+        return new UserSearchDto(
+                adId,
+                name,
+                emailId,
+                phoneNumber
+        );
+    }
+
+    // LDAP madhun ek attribute value ghete
+    private String getAttribute(
+            Attributes attributes,
+            String attributeName) throws NamingException {
+
+        if (attributes.get(attributeName) == null) {
+            return null;
+        }
+
+        Object value = attributes.get(attributeName).get();
+
+        return value == null ? null : value.toString();
+    }
+}
+
+
+// ============================================================
+// FILE 3: controller/admin/UserSearchController.java
+// LoggerUtility / LoggerFactoryUtility che exact imports
+// tujhya existing LoginController madhun copy kar.
+// ============================================================
+
+package com.epay.admin.portal.controller.admin;
+
+import com.epay.admin.portal.dto.admin.UserSearchDto;
+import com.epay.admin.portal.service.admin.LdapUserSearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+// Existing LoginController madhil logger imports vapra.
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/admin/users")
+public class UserSearchController {
+
+    private final LoggerUtility logger =
+            LoggerFactoryUtility.getLogger(this.getClass());
+
+    private final LdapUserSearchService ldapUserSearchService;
+
+    @GetMapping("/search")
+    @Operation(
+            summary = "Search LDAP Users",
+            description = "Search user details by AD ID or name"
+    )
+    public List<UserSearchDto> searchUsers(
+            @RequestParam("query") String query) {
+
+        logger.info("LDAP user search request received");
+        return ldapUserSearchService.searchUsers(query);
+    }
+}
+
+
+// ============================================================
+// FILE 4: LdapConfig.java
+// Existing config class madhye LdapTemplate bean nasel tarch
+// ha bean add kar. Existing context source vapra.
+// ============================================================
+
+@Bean
+public LdapTemplate ldapTemplate(
+        LdapContextSource contextSource) {
+    return new LdapTemplate(contextSource);
+}
+
+
+// ============================================================
+// FILE 5: application-local.yml
+// Existing auth.ldap block madhye merge kar.
+// ============================================================
+
+auth:
+  ldap:
+    user-search-base: ou=GTMP
+
+
+// ============================================================
+// FILE 6: application-dev.yml
+// Existing auth.ldap block madhye merge kar.
+// Actual AD user OU verify karun base set kar.
+// ============================================================
+
+auth:
+  ldap:
+    user-search-base: ou=users
+
+
+// ============================================================
+// POSTMAN TEST
+// ============================================================
+
+// GET
+// http://localhost:8080/admin/users/search?query=V102154
+//
+// GET
+// http://localhost:8080/admin/users/search?query=Rohit
+//
+// Host, port ani context path tujhya app nusar badal.
+
+
+// ============================================================
+// SAMPLE RESPONSE
+// He sample aahe; actual LDAP madhil data parat yeil.
+// ============================================================
+
+[
+  {
+    "adId": "V102154",
+    "name": "Rohit Gardi",
+    "emailId": "rohit@example.com",
+    "phoneNumber": "9876543210"
+  }
+]
+
+
+
+
+
+
 private void validateOtpsByPrefix(List<OtpManagement> otps,
                                   UnblockUserRequest unblockUserRequest) {
 
