@@ -1,4 +1,154 @@
 ============================================================
+1) FILE: dto/admin/UserSearchDto.java
+============================================================
+
+package com.epay.admin.portal.dto.admin;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserSearchDto {
+    private String adId;
+    private String name;
+    private String emailId;
+    private String phoneNumber;
+}
+
+
+============================================================
+2) FILE: service/admin/LdapUserSearchService.java
+============================================================
+
+package com.epay.admin.portal.service.admin;
+
+import com.epay.admin.portal.dto.admin.UserSearchDto;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.filter.OrFilter;
+import org.springframework.ldap.filter.EqualsFilter;
+import org.springframework.ldap.filter.WhitespaceWildcardsFilter;
+import org.springframework.stereotype.Service;
+
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import java.util.List;
+
+@Service
+public class LdapUserSearchService {
+
+    private final LdapTemplate ldapTemplate;
+
+    @Value("${auth.ldap.user-search-base}")
+    private String userSearchBase;
+
+    public LdapUserSearchService(LdapTemplate ldapTemplate) {
+        this.ldapTemplate = ldapTemplate;
+    }
+
+    // Query validate karun LDAP search karte
+    public List<UserSearchDto> searchUsers(String query) {
+        String searchValue = validateQuery(query);
+
+        return ldapTemplate.search(
+                userSearchBase,
+                buildSearchFilter(searchValue),
+                (AttributesMapper<UserSearchDto>) this::mapUser
+        );
+    }
+
+    // Query validate karte
+    private String validateQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Search query is required");
+        }
+
+        String searchValue = query.trim();
+
+        if (searchValue.length() > 100) {
+            throw new IllegalArgumentException(
+                    "Search query must not exceed 100 characters");
+        }
+
+        return searchValue;
+    }
+
+    // AD ID exact kiwa name partial match filter
+    private String buildSearchFilter(String searchValue) {
+        OrFilter filter = new OrFilter();
+
+        filter.or(new EqualsFilter(
+                "sAMAccountName", searchValue));
+
+        filter.or(new WhitespaceWildcardsFilter(
+                "cn", searchValue));
+
+        filter.or(new WhitespaceWildcardsFilter(
+                "displayName", searchValue));
+
+        return filter.encode();
+    }
+
+    // LDAP madhil user attributes DTO madhye map karte
+    private UserSearchDto mapUser(Attributes attributes)
+            throws NamingException {
+
+        String adId = getAttribute(
+                attributes, "sAMAccountName");
+
+        if (adId == null) {
+            adId = getAttribute(attributes, "uid");
+        }
+
+        String name = getAttribute(
+                attributes, "displayName");
+
+        if (name == null) {
+            name = getAttribute(attributes, "cn");
+        }
+
+        String emailId = getAttribute(
+                attributes, "mail");
+
+        String phoneNumber = getAttribute(
+                attributes, "mobile");
+
+        if (phoneNumber == null) {
+            phoneNumber = getAttribute(
+                    attributes, "telephoneNumber");
+        }
+
+        return new UserSearchDto(
+                adId,
+                name,
+                emailId,
+                phoneNumber
+        );
+    }
+
+    // LDAP madhun attribute value ghete
+    private String getAttribute(
+            Attributes attributes,
+            String attributeName) throws NamingException {
+
+        if (attributes.get(attributeName) == null) {
+            return null;
+        }
+
+
+
+
+
+
+
+
+
+============================================================
 FILE 1: dto/admin/UserSearchDto.java
 ============================================================
 
