@@ -1,3 +1,41 @@
+public void testServiceAccountBind(LoginRequest loginRequest) {
+    DirContext context = null;
+
+    try {
+        log.info("Testing LDAP authentication...");
+
+        context = contextSource.getContext(
+                loginRequest.getUserId(),
+                loginRequest.getPassword()
+        );
+
+        log.info("LDAP Authentication Success");
+
+    } catch (Exception ex) {
+        log.error("LDAP Authentication Failed", ex);
+
+        throw new AdminPortalException(
+                SERVICE_ACCOUNT_AUTH_FAILED,
+                SERVICE_ACCOUNT_AUTH_ERROR_MESSAGE
+        );
+
+    } finally {
+        if (context != null) {
+            try {
+                context.close();
+            } catch (Exception ex) {
+                log.warn("Failed to close LDAP context", ex);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
 ============================================================
 1) FILE: dto/admin/UserSearchDto.java
 ============================================================
