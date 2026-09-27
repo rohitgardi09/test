@@ -1,3 +1,16 @@
+
+logging:
+  level:
+    root: INFO
+    org.springframework.ldap: DEBUG
+    org.springframework.security.ldap: DEBUG
+    org.springframework.security.authentication: DEBUG
+    com.sun.jndi.ldap: DEBUG
+    com.epay.admin.portal: DEBUG
+
+
+
+
 public void testServiceAccountBind(LoginRequest loginRequest) {
     DirContext context = null;
 
