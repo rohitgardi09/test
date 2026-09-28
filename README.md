@@ -1,3 +1,23 @@
+catch (org.springframework.ldap.AuthenticationException ex) {
+        String err = String.valueOf(ex.getMessage());
+        String reason = err.contains("data 52e") ? "WRONG PASSWORD (or LDAP_SERVICE_PASSWORD not loaded)"
+                : err.contains("data 525") ? "USER DN NOT FOUND - check spring.ldap.username DN"
+                : err.contains("data 532") ? "PASSWORD EXPIRED"
+                : err.contains("data 533") ? "ACCOUNT DISABLED"
+                : err.contains("data 775") ? "ACCOUNT LOCKED"
+                : err.contains("data 701") ? "ACCOUNT EXPIRED"
+                : "UNKNOWN AD CODE - see message";
+        msg = "STAGE 2 FAILED - " + reason + " | Msg: " + err;
+        log.error(msg, ex);
+        return result.append(msg).toString();
+
+
+
+
+
+
+
+
 // Imports to add in LdapAuthenticationService.java
 import com.epay.admin.portal.model.request.LoginRequest;
 import org.springframework.ldap.CommunicationException;
