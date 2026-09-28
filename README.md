@@ -7,14 +7,22 @@ import javax.naming.directory.DirContext;
 
 public void testServiceAccountBind(LoginRequest loginRequest) {
 
-    // STAGE 0: Raw TCP connectivity check (no LDAP protocol involved)
-    String host = "corp.ad.sbi";
-    int port = 636;
+    // STAGE 0: Raw TCP connectivity check (host/port taken from configured ldap url)
+    String host;
+    int port;
+    try {
+        java.net.URI uri = java.net.URI.create(contextSource.getUrls()[0]);
+        host = uri.getHost();
+        port = uri.getPort() != -1 ? uri.getPort() : ("ldaps".equalsIgnoreCase(uri.getScheme()) ? 636 : 389);
+    } catch (Exception ex) {
+        log.error("STAGE 0 FAILED - CONFIG ISSUE: cannot parse ldap url. Msg: {}", ex.getMessage(), ex);
+        return;
+    }
     try (java.net.Socket socket = new java.net.Socket()) {
         socket.connect(new java.net.InetSocketAddress(host, port), 5000);
         log.info("STAGE 0 RESULT: SUCCESS - TCP connection to {}:{} is open", host, port);
     } catch (java.net.SocketTimeoutException ex) {
-        log.error("STAGE 0 FAILED - NETWORK ISSUE: TIMEOUT connecting to {}:{} - firewall likely blocking this port. Not a config/code issue.", host, port, ex);
+        log.error("STAGE 0 FAILED - NETWORK ISSUE: TIMEOUT connecting to {}:{} - firewall/VPN likely blocking this port. Not a config/code issue.", host, port, ex);
         return;
     } catch (java.io.IOException ex) {
         log.error("STAGE 0 FAILED - NETWORK ISSUE: Cannot connect to {}:{} - Type: {}, Msg: {}", host, port, ex.getClass().getName(), ex.getMessage(), ex);
@@ -22,7 +30,7 @@ public void testServiceAccountBind(LoginRequest loginRequest) {
     }
 
     // STAGE 1: Log effective config being used
-    log.info("Configured URL: {}", contextSource.getUrls() != null ? String.join(",", contextSource.getUrls()) : "NULL");
+    log.info("Configured URL: {}", String.join(",", contextSource.getUrls()));
     log.info("Configured Base DN: {}", contextSource.getBaseLdapPathAsString());
     log.info("Service Account UserDn: {}", contextSource.getUserDn());
     try {
@@ -42,7 +50,7 @@ public void testServiceAccountBind(LoginRequest loginRequest) {
         log.error("STAGE 2 FAILED - CONNECTION/SSL ISSUE: reached TCP but LDAPS handshake failed. Check cert trust. Msg: {}", ex.getMessage(), ex);
         return;
     } catch (org.springframework.ldap.AuthenticationException ex) {
-        log.error("STAGE 2 FAILED - CONFIG/CREDENTIAL ISSUE: service account username/password in application.yml is wrong. Msg: {}", ex.getMessage(), ex);
+        log.error("STAGE 2 FAILED - CONFIG/CREDENTIAL ISSUE: service account username/password is wrong. Msg: {}", ex.getMessage(), ex);
         return;
     } catch (Exception ex) {
         log.error("STAGE 2 FAILED - UNKNOWN: Type: {}, Msg: {}", ex.getClass().getName(), ex.getMessage(), ex);
