@@ -1,11 +1,9 @@
+// Imports to add in LdapAuthenticationService.java
+import com.epay.admin.portal.model.request.LoginRequest;
 import org.springframework.ldap.CommunicationException;
-import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import javax.naming.directory.DirContext;
-
-
-
-
 
 public void testServiceAccountBind(LoginRequest loginRequest) {
 
@@ -52,11 +50,13 @@ public void testServiceAccountBind(LoginRequest loginRequest) {
     }
 
     // STAGE 3: Search for the user via configured search-base/search-filter
+    FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(userSearchBase, userSearchFilter, contextSource);
+    ldapUserSearch.setSearchSubtree(true);
     DirContextOperations userDetails;
     try {
         userDetails = ldapUserSearch.searchForUser(loginRequest.getUserId());
         log.info("STAGE 3 RESULT: User found. Resolved DN: {}", userDetails.getDn());
-    } catch (NameNotFoundException ex) {
+    } catch (UsernameNotFoundException ex) {
         log.error("STAGE 3 FAILED - CONFIG ISSUE: user '{}' not found. Check user-search-base/user-search-filter or confirm user exists under that OU. Msg: {}",
                 loginRequest.getUserId(), ex.getMessage(), ex);
         return;
