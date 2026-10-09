@@ -1,48 +1,25 @@
-public List<UserSearchDto> search(String userId) {
+private static final AttributesMapper<UserSearchDto> USER_MAPPER = attrs -> {
 
-    log.info("LDAP user search started.");
+    String adId = attrs.get("sAMAccountName") != null
+            ? attrs.get("sAMAccountName").get().toString()
+            : null;
 
-    try {
-        if (userId == null || userId.trim().isEmpty()) {
-            log.info("LDAP user search skipped because userId is empty.");
-            return Collections.emptyList();
-        }
+    String firstName = attrs.get("givenName") != null
+            ? attrs.get("givenName").get().toString()
+            : null;
 
-        String searchValue = userId.trim();
-
-        OrFilter objectClassFilter = new OrFilter();
-        objectClassFilter.or(new EqualsFilter("objectClass", "user"));
-        objectClassFilter.or(new EqualsFilter("objectClass", "inetOrgPerson"));
-
-        OrFilter matchFilter = new OrFilter();
-        matchFilter.or(
-                new EqualsFilter("sAMAccountName", searchValue)
-        );
-        matchFilter.or(
-                new LikeFilter("cn", "*" + searchValue + "*")
-        );
-
-        AndFilter filter = new AndFilter();
-        filter.and(objectClassFilter);
-        filter.and(matchFilter);
-
-        log.info("LDAP search filter created successfully.");
-
-        List<UserSearchDto> results = ldapTemplate.search(
-                userSearchBase,
-                filter.encode(),
-                USER_MAPPER
-        );
-
-        log.info(
-                "LDAP user search completed successfully. Result count: {}",
-                results.size()
-        );
-
-        return results;
-
-    } catch (Exception e) {
-        log.error("LDAP user search failed.", e);
-        throw e;
+    String lastName = null;
+    if (attrs.get("cn") != null) {
+        String fullName = attrs.get("cn").get().toString().trim();
+        String[] parts = fullName.split("\\s+");
+        lastName = parts.length > 1
+                ? parts[parts.length - 1]
+                : null;
     }
-}
+
+    String email = attrs.get("mail") != null
+            ? attrs.get("mail").get().toString()
+            : null;
+
+    return new UserSearchDto(adId, firstName, lastName, email);
+};
