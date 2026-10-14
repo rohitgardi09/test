@@ -1,3 +1,7 @@
+Request for Client ID and Client Secret for Gen-7 DEV Implementation
+
+
+
 Dear Sir/Madam,
 
 As part of the Gen-7 migration, I am currently working on the required changes in the DEV environment.
