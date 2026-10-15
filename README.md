@@ -1,3 +1,21 @@
+
+Hi Team,
+
+I am facing an issue with GSTN verification in Gen-7.
+
+The same GSTN is getting verified successfully in Gen-6, but when I try to verify it in Gen-7, it returns “GSTN Invalid.”
+
+Could you please check and help identify the root cause of this issue?
+
+Regards,
+Rohit
+
+
+
+
+........
+
+
 Request for Client ID and Client Secret for Gen-7 DEV Implementation
 
 
