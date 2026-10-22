@@ -1,63 +1,19 @@
-
-SELECT
-    RAWTOHEX(ID) AS ID,
-    CLIENT_IP,
-    DBMS_LOB.GETLENGTH(DEVICE_DETAILS) AS DETAILS_LENGTH,
-    UTL_RAW.CAST_TO_VARCHAR2(
-        DBMS_LOB.SUBSTR(DEVICE_DETAILS, 2000, 1)
-    ) AS DEVICE_DETAILS_JSON
-FROM DEVICE_DETAILS
-ORDER BY CREATED_DATE DESC;
-
-
-..........
-public AdminPortalResponse<Object> validateOtp(
-        OtpValidateRequest otpValidationRequest) {
-
-    // Save Device Details
-    DeviceDetailsRequest deviceDetailsRequest =
-            otpValidationRequest.getDeviceDetailsRequest();
-
-    if (ObjectUtils.isNotEmpty(deviceDetailsRequest)) {
-
-        DeviceDetailsDto deviceDetailsDto =
-                tokenService.buildAdminDeviceInfo(deviceDetailsRequest);
-
-        logger.debug("Device details DTO created. Client IP present: {}",
-                ObjectUtils.isNotEmpty(deviceDetailsDto.getClientIp()));
-
-        adminDeviceInfoDao.saveAdminRequestedDeviceInfo(deviceDetailsDto);
-    }
-
-    RequestType requestType = RequestType.valueOf(
-            otpValidationRequest.getOtpValidationRequest()
-                    .getRequestType().toUpperCase());
-
-    return switch (requestType) {
-        case LOGIN -> validateAdminOtp(
-                otpValidationRequest.getOtpValidationRequest());
-        case SIGNUP -> validateMifOtp(
-                otpValidationRequest.getOtpValidationRequest());
-        default -> throw new IllegalArgumentException(
-                "Invalid requestType: " + requestType);
-    };
+{
+  "userId": "rohit.gardi",
+  "mobileNumber": "9876543210",
+  "requestType": "LOGIN",
+  "otp": "6BF2teJnqvB0IF0KV1ALICtU",
+  "requestId": "2BD0C275-B4DF-F43F-E063-7C8B610A71AC",
+  "deviceDetailsRequest": {
+    "clientIp": "192.168.1.100",
+    "browser": "Chrome",
+    "os": "Windows 11",
+    "screenWidth": "1920",
+    "screenHeight": "1080",
+    "colorDepth": "24",
+    "availableWidth": "1920",
+    "availableHeight": "1040",
+    "language": "en-IN",
+    "userAgent": "Mozilla/5.0 Chrome/140.0.0.0"
+  }
 }
-
-
-
-
-,,,,
-
-
-public DeviceDetailsDto buildAdminDeviceInfo(
-        DeviceDetailsRequest deviceDetailsRequest) {
-
-    String deviceDetailsJson =
-            AdminPortalUtil.toJson(deviceDetailsRequest);
-
-    return DeviceDetailsDto.builder()
-            .clientIp(deviceDetailsRequest.getClientIp())
-            .deviceDetails(deviceDetailsJson)
-            .build();
-}
-
