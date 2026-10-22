@@ -1,4 +1,16 @@
 
+SELECT
+    RAWTOHEX(ID) AS ID,
+    CLIENT_IP,
+    DBMS_LOB.GETLENGTH(DEVICE_DETAILS) AS DETAILS_LENGTH,
+    UTL_RAW.CAST_TO_VARCHAR2(
+        DBMS_LOB.SUBSTR(DEVICE_DETAILS, 2000, 1)
+    ) AS DEVICE_DETAILS_JSON
+FROM DEVICE_DETAILS
+ORDER BY CREATED_DATE DESC;
+
+
+..........
 public AdminPortalResponse<Object> validateOtp(
         OtpValidateRequest otpValidationRequest) {
 
