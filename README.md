@@ -1,3 +1,11 @@
+
+We are adding IP configuration to the OTP Validation API, and it has been included in the request body. Please make the necessary changes accordingly for both MIF and Admin.
+
+
+
+
+
+
 {
   "userId": "rohit.gardi",
   "mobileNumber": "9876543210",
