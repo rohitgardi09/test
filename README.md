@@ -1,7 +1,66 @@
 
-/* =========================================================
-   1. UserManagementDao.java
-   ========================================================= */
+/* ============================================================
+   1. BusinessRolesMasterRepository.java
+   ============================================================ */
+
+@Query("SELECT b.secondaryBrCode FROM BusinessRolesMaster b " +
+       "WHERE b.brCode = :brCode AND b.isActive = true")
+Optional<String> findSecondaryBrCodeByBrCode(
+        @Param("brCode") String brCode
+);
+
+
+/* ============================================================
+   2. UserManagementValidator.java
+   ============================================================ */
+
+// Fetch allowed Secondary Role Codes from BUSINESS_ROLES_MASTER
+public String getAllowedSecondaryRoleCodes(String primaryBrCode) {
+
+    return businessRolesMasterRepository
+            .findSecondaryBrCodeByBrCode(primaryBrCode)
+            .orElseThrow(() -> new AdminPortalException(
+                    GENERIC_ERROR_CODE,
+                    "Secondary BR Code not found for Primary Role: " + primaryBrCode
+            ));
+}
+
+
+// Validate selected Secondary Role
+public void validateAllowedSecondaryRole(
+        String requestedSecondaryRole,
+        String allowedSecondaryRoleCodes) {
+
+    if (requestedSecondaryRole == null
+            || requestedSecondaryRole.isBlank()
+            || allowedSecondaryRoleCodes == null
+            || allowedSecondaryRoleCodes.isBlank()) {
+
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_NOT_ALLOWED
+        );
+    }
+
+    boolean isAllowed = Arrays.stream(allowedSecondaryRoleCodes.split(","))
+            .map(String::trim)
+            .anyMatch(code ->
+                    code.equalsIgnoreCase(requestedSecondaryRole.trim())
+            );
+
+    if (!isAllowed) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_NOT_ALLOWED
+        );
+    }
+}
+
+
+/* ============================================================
+   3. UserManagementDao.java
+      Complete updateSecondaryRole() method
+   ============================================================ */
 
 private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
     try {
@@ -14,11 +73,11 @@ private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
 
         for (SecondaryRoleAssignmentRequest request : assignments) {
 
-            // Fetch Primary User
+            // Fetch Primary User ID
             UUID primaryUserId =
                     userManagementValidator.getUserId(request.getPrimaryAdId());
 
-            // Fetch Secondary User
+            // Fetch Secondary User ID
             UUID secondaryUserId =
                     userManagementValidator.getUserId(request.getSecondaryAdId());
 
@@ -30,34 +89,37 @@ private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
             BusinessRolesMaster primaryBusinessRole =
                     userManagementValidator.getPrimaryBusinessRole(primaryRole);
 
-            // Fetch allowed Secondary Role Codes
-            String allowedSecondaryRoleCodes =
-                    primaryBusinessRole.getSecondaryBrCode();
+            // Fetch Primary BR Code
+            String primaryBrCode = primaryBusinessRole.getBrCode();
 
-            log.info("Primary BR Code: {}", primaryBusinessRole.getBrCode());
+            // Fetch Allowed Secondary Role Codes from Database
+            String allowedSecondaryRoleCodes =
+                    userManagementValidator.getAllowedSecondaryRoleCodes(primaryBrCode);
+
+            log.info("Primary BR Code: {}", primaryBrCode);
             log.info("Allowed Secondary BR Codes: {}", allowedSecondaryRoleCodes);
             log.info("Requested Secondary Role: {}", request.getSecondaryRole());
 
-            // Validate allowed Secondary Role
+            // Validate Allowed Secondary Role
             userManagementValidator.validateAllowedSecondaryRole(
                     request.getSecondaryRole(),
                     allowedSecondaryRoleCodes
             );
 
-            // Fetch selected Secondary Role
+            // Fetch Selected Secondary Role
             BusinessRolesMaster secondaryRole =
                     userManagementValidator.getSecondaryRole(
                             request.getSecondaryRole()
                     );
 
-            // Validate duplicate assignment
+            // Validate Duplicate Secondary Role
             userManagementValidator.validateDuplicateSecondaryRole(
                     primaryUserId,
                     secondaryUserId,
                     secondaryRole.getId()
             );
 
-            // Save using Mapper
+            // Save Secondary User Role using Mapper
             saveSecondaryUserRole(
                     primaryUserId,
                     secondaryUserId,
@@ -83,120 +145,14 @@ private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
 }
 
 
-/* =========================================================
-   2. UserManagementValidator.java
-   ========================================================= */
+/* ============================================================
+   4. Required imports
+   ============================================================ */
 
-// Fetch Primary Business Role
-public BusinessRolesMaster getPrimaryBusinessRole(UserRole primaryRole) {
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.Optional;
 
-    return businessRolesMasterRepository.findById(primaryRole.getRoleId())
-            .orElseThrow(() -> new AdminPortalException(
-                    GENERIC_ERROR_CODE,
-                    PRIMARY_BUSINESS_ROLE_NOT_FOUND
-            ));
-}
-
-
-// Validate Allowed Secondary Role
-public void validateAllowedSecondaryRole(
-        String requestedSecondaryRole,
-        String allowedSecondaryRoleCodes) {
-
-    if (requestedSecondaryRole == null
-            || requestedSecondaryRole.isBlank()
-            || allowedSecondaryRoleCodes == null
-            || allowedSecondaryRoleCodes.isBlank()) {
-
-        throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                SECONDARY_ROLE_NOT_ALLOWED
-        );
-    }
-
-    try {
-        List<String> allowedRoles = objectMapper.readValue(
-                allowedSecondaryRoleCodes,
-                new TypeReference<List<String>>() {}
-        );
-
-        boolean isAllowed = allowedRoles.stream()
-                .filter(Objects::nonNull)
-                .anyMatch(role ->
-                        role.trim().equalsIgnoreCase(
-                                requestedSecondaryRole.trim()
-                        )
-                );
-
-        if (!isAllowed) {
-            throw new AdminPortalException(
-                    FAILED_ERROR_CODE,
-                    SECONDARY_ROLE_NOT_ALLOWED
-            );
-        }
-
-    } catch (JsonProcessingException e) {
-        log.error("Invalid SECONDARY_BR_CODE JSON: {}",
-                allowedSecondaryRoleCodes, e);
-
-        throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                SECONDARY_ROLE_NOT_ALLOWED
-        );
-    }
-}
-
-
-/* =========================================================
-   3. UserManagementDao.java - Save Method
-   ========================================================= */
-
-private void saveSecondaryUserRole(
-        UUID primaryUserId,
-        UUID secondaryUserId,
-        UserRole primaryRole,
-        BusinessRolesMaster secondaryRole,
-        SecondaryRoleAssignmentRequest request) {
-
-    UserRole userRole = userManagementMapper.toSecondaryUserRole(
-            primaryUserId,
-            secondaryUserId,
-            primaryRole,
-            secondaryRole,
-            request
-    );
-
-    userRoleRepository.save(userRole);
-
-    log.info("Secondary Role saved successfully for Primary User: {}",
-            primaryUserId);
-}
-
-
-/* =========================================================
-   4. UserManagementMapper.java
-   ========================================================= */
-
-@Mapping(target = "id", ignore = true)
-@Mapping(target = "createdAt", ignore = true)
-@Mapping(target = "createdBy", ignore = true)
-@Mapping(target = "deletedAt", ignore = true)
-@Mapping(target = "userId", source = "primaryUserId")
-@Mapping(target = "secondaryUserId", source = "secondaryUserId")
-@Mapping(target = "roleId", source = "secondaryRole.id")
-@Mapping(target = "aggregatorId", source = "primaryRole.aggregatorId")
-@Mapping(target = "isPrimary", constant = "false")
-@Mapping(target = "isActive", constant = "true")
-@Mapping(target = "fromDate", source = "request.fromDate")
-@Mapping(target = "toDate", source = "request.toDate")
-@Mapping(target = "remark", source = "request.remarks")
-@Mapping(target = "authStatus",
-        expression = "java(AuthStatus.PENDING_FOR_AUTHORIZATION)")
-@Mapping(target = "recordStatus", constant = "ACTIVE")
-UserRole toSecondaryUserRole(
-        UUID primaryUserId,
-        UUID secondaryUserId,
-        UserRole primaryRole,
-        BusinessRolesMaster secondaryRole,
-        SecondaryRoleAssignmentRequest request
-);
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
