@@ -1,4 +1,49 @@
 
+public void validateAllowedSecondaryRole(
+        String requestedSecondaryRole,
+        String allowedSecondaryRoleCodes) {
+
+    if (requestedSecondaryRole == null
+            || requestedSecondaryRole.isBlank()
+            || allowedSecondaryRoleCodes == null
+            || allowedSecondaryRoleCodes.isBlank()) {
+
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_NOT_ALLOWED
+        );
+    }
+
+    try {
+        List<String> allowedRoles = objectMapper.readValue(
+                allowedSecondaryRoleCodes,
+                new TypeReference<List<String>>() {}
+        );
+
+        boolean isAllowed = allowedRoles.stream()
+                .anyMatch(role -> role.equalsIgnoreCase(
+                        requestedSecondaryRole.trim()
+                ));
+
+        if (!isAllowed) {
+            throw new AdminPortalException(
+                    FAILED_ERROR_CODE,
+                    SECONDARY_ROLE_NOT_ALLOWED
+            );
+        }
+
+    } catch (JsonProcessingException e) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_NOT_ALLOWED
+        );
+    }
+}
+
+
+
+
+m?mmmmmmmmm
 private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
     try {
         log.info("Starting Secondary Role Assignment");
