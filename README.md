@@ -1,70 +1,389 @@
-public List<UserSearchDto> search(String userId) {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Data
+@Entity
+@Table(name = "USER_ROLE")
+public class UserRole extends AuditEntityCreatedDate {
 
-    log.info("LDAP user search started.");
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(nullable = false, updatable = false, unique = true)
+    private UUID id;
 
-    try {
-        if (userId == null || userId.trim().isEmpty()) {
-            log.info("LDAP user search skipped because userId is empty.");
-            return Collections.emptyList();
-        }
+    private UUID userId;
 
-        String searchValue = userId.trim();
+    private UUID roleId;
 
-        // First check ADID in User MView
-        UserMViewDto userMViewDto =
-                userMViewDao.getUserDetails(
-                        searchValue.toUpperCase(), UserStatus.ACTIVE);
+    private UUID aggregatorId;
 
-        // If ADID found in View, return View details
-        if (userMViewDto != null) {
+    private Boolean isPrimary;
 
-            log.info("User found in User MView: {}", searchValue);
+    private Boolean isActive;
 
-            UserSearchDto userSearchDto = new UserSearchDto(
-                    userMViewDto.getAdId(),
-                    userMViewDto.getFirstName(),
-                    userMViewDto.getLastName(),
-                    userMViewDto.getEmail()
-            );
+    private Long fromDate;
 
-            return Collections.singletonList(userSearchDto);
-        }
+    private Long toDate;
 
-        log.info("User not found in View. Searching LDAP by ADID: {}", searchValue);
+    @Column(name = "SECONDARY_USER_ID")
+    private UUID secondaryUserId;
 
-        OrFilter objectClassFilter = new OrFilter();
-        objectClassFilter.or(new EqualsFilter("objectClass", "user"));
-        objectClassFilter.or(new EqualsFilter("objectClass", "inetOrgPerson"));
+    private String remark;
 
-        OrFilter matchFilter = new OrFilter();
-        matchFilter.or(new EqualsFilter("sAMAccountName", searchValue));
-        matchFilter.or(new LikeFilter("cn", "*" + searchValue + "*"));
+    @Enumerated(EnumType.STRING)
+    private AuthStatus authStatus;
 
-        AndFilter filter = new AndFilter();
-        filter.and(objectClassFilter);
-        filter.and(matchFilter);
+    private String recordStatus;
 
-        log.info("LDAP search filter created successfully.");
+    private Long deletedAt;
+}
 
-        List<UserSearchDto> results =
-                ldapTemplate.search(
-                        userSearchBase,
-                        filter.encode(),
-                        USER_MAPPER);
 
-        log.info("LDAP user search completed successfully. Result count: {}", results.size());
 
-        return results;
 
-    } catch (Exception ex) {
+.....
 
-        log.error("LDAP user search failed. error: {}", ex.getMessage());
+@Repository
+public interface UserRoleRepository extends JpaRepository<UserRole, UUID> {
 
+    Optional<UserRole> findByUserIdAndIsPrimaryTrue(UUID userId);
+
+    boolean existsByUserIdAndRoleIdAndSecondaryUserIdAndIsActiveTrue(
+            UUID userId,
+            UUID roleId,
+            UUID secondaryUserId
+    );
+
+}
+
+
+
+
+....
+
+
+@Repository
+public interface BusinessRolesMasterRepository
+        extends JpaRepository<BusinessRolesMaster, UUID> {
+
+    Optional<BusinessRolesMaster> findByBrCodeAndIsActiveTrue(String brCode);
+
+}
+
+
+
+
+.....
+
+
+@Query("SELECT u.id FROM Users u WHERE u.adId = :adId")
+UUID findIDByAdId(@Param("adId") String adId);
+
+
+
+....
+
+
+
+
+public void validateSecondaryRoleAssignments(
+        List<SecondaryRoleAssignmentRequest> assignments) {
+
+    if (assignments == null || assignments.isEmpty()) {
         throw new AdminPortalException(
                 FAILED_ERROR_CODE,
-                MessageFormat.format(
-                        FAILED_ERROR_MESSAGE_WITH_REASON,
-                        LDAP_USER_SEARCH,
-                        ex.getMessage()));
+                SECONDARY_ROLE_ASSIGNMENTS_REQUIRED
+        );
+    }
+
+    for (SecondaryRoleAssignmentRequest request : assignments) {
+        validateSecondaryRoleRequest(request);
     }
 }
+
+private void validateSecondaryRoleRequest(
+        SecondaryRoleAssignmentRequest request) {
+
+    if (request == null) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_REQUEST_REQUIRED
+        );
+    }
+
+    if (request.getPrimaryAdId() == null
+            || request.getPrimaryAdId().isBlank()) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                PRIMARY_AD_ID_REQUIRED
+        );
+    }
+
+    if (request.getSecondaryAdId() == null
+            || request.getSecondaryAdId().isBlank()) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_AD_ID_REQUIRED
+        );
+    }
+
+    if (request.getSecondaryRole() == null
+            || request.getSecondaryRole().isBlank()) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_REQUIRED
+        );
+    }
+
+    if (request.getPrimaryAdId().equalsIgnoreCase(
+            request.getSecondaryAdId())) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SAME_USER_NOT_ALLOWED
+        );
+    }
+
+    validateAssignmentDates(
+            request.getFromDate(),
+            request.getToDate()
+    );
+}
+
+private void validateAssignmentDates(Long fromDate, Long toDate) {
+
+    if (fromDate == null || toDate == null) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                ASSIGNMENT_DATES_REQUIRED
+        );
+    }
+
+    if (fromDate > toDate) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                INVALID_ASSIGNMENT_DATES
+        );
+    }
+}
+
+
+
+.....
+
+
+
+private final UserManagementRepository userManagementRepository;
+
+private final UserRoleRepository userRoleRepository;
+
+private final BusinessRolesMasterRepository businessRolesMasterRepository;
+
+private final UserManagementValidator userManagementValidator;
+
+
+....
+
+
+private void updateSecondaryRole(UpdateUserRequest updateUserRequest) {
+
+    try {
+        log.info("Starting Secondary Role Assignment");
+
+        List<SecondaryRoleAssignmentRequest> assignments =
+                updateUserRequest.getSecondaryRoleAssignment();
+
+        userManagementValidator.validateSecondaryRoleAssignments(assignments);
+
+        for (SecondaryRoleAssignmentRequest request : assignments) {
+
+            UUID primaryUserId = getUserId(request.getPrimaryAdId());
+
+            UUID secondaryUserId = getUserId(request.getSecondaryAdId());
+
+            UserRole primaryRole = getPrimaryRole(primaryUserId);
+
+            BusinessRolesMaster secondaryRole =
+                    getSecondaryRole(request.getSecondaryRole());
+
+            validateDuplicateSecondaryRole(
+                    primaryUserId,
+                    secondaryUserId,
+                    secondaryRole.getId()
+            );
+
+            saveSecondaryUserRole(
+                    primaryUserId,
+                    secondaryUserId,
+                    primaryRole,
+                    secondaryRole,
+                    request
+            );
+        }
+
+        log.info("Secondary Role Assignment completed successfully");
+
+    } catch (AdminPortalException e) {
+        throw e;
+
+    } catch (Exception e) {
+        log.error("Error while assigning Secondary Role", e);
+
+        throw new AdminPortalException(
+                GENERIC_ERROR_CODE,
+                GENERIC_ERROR_MESSAGE
+        );
+    }
+}
+
+
+
+....
+
+
+
+private UUID getUserId(String adId) {
+
+    UUID userId = userManagementRepository.findIDByAdId(adId);
+
+    if (userId == null) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                adId.equalsIgnoreCase(adId) ? PRIMARY_USER_NOT_FOUND
+                        : SECONDARY_USER_NOT_FOUND
+        );
+    }
+
+    return userId;
+}
+
+
+
+
+.....
+
+
+private UUID getUserId(String adId, String errorMessage) {
+
+    UUID userId = userManagementRepository.findIDByAdId(adId);
+
+    if (userId == null) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                errorMessage
+        );
+    }
+
+    return userId;
+}
+
+
+
+
+
+....
+
+UUID primaryUserId = getUserId(
+        request.getPrimaryAdId(),
+        PRIMARY_USER_NOT_FOUND
+);
+
+UUID secondaryUserId = getUserId(
+        request.getSecondaryAdId(),
+        SECONDARY_USER_NOT_FOUND
+);
+
+
+
+...
+
+private UserRole getPrimaryRole(UUID primaryUserId) {
+
+    return userRoleRepository
+            .findByUserIdAndIsPrimaryTrue(primaryUserId)
+            .orElseThrow(() -> new AdminPortalException(
+                    FAILED_ERROR_CODE,
+                    PRIMARY_ROLE_NOT_ASSIGNED
+            ));
+}
+
+
+...
+
+
+private BusinessRolesMaster getSecondaryRole(String secondaryRoleCode) {
+
+    return businessRolesMasterRepository
+            .findByBrCodeAndIsActiveTrue(secondaryRoleCode)
+            .orElseThrow(() -> new AdminPortalException(
+                    FAILED_ERROR_CODE,
+                    SECONDARY_ROLE_NOT_FOUND
+            ));
+}
+
+
+
+....
+
+
+private void validateDuplicateSecondaryRole(
+        UUID primaryUserId,
+        UUID secondaryUserId,
+        UUID secondaryRoleId) {
+
+    boolean alreadyAssigned =
+            userRoleRepository
+                    .existsByUserIdAndRoleIdAndSecondaryUserIdAndIsActiveTrue(
+                            primaryUserId,
+                            secondaryRoleId,
+                            secondaryUserId
+                    );
+
+    if (alreadyAssigned) {
+        throw new AdminPortalException(
+                FAILED_ERROR_CODE,
+                SECONDARY_ROLE_ALREADY_ASSIGNED
+        );
+    }
+}
+
+private void saveSecondaryUserRole(
+        UUID primaryUserId,
+        UUID secondaryUserId,
+        UserRole primaryRole,
+        BusinessRolesMaster secondaryRole,
+        SecondaryRoleAssignmentRequest request) {
+
+    UserRole userRole = new UserRole();
+
+    userRole.setUserId(primaryUserId);
+    userRole.setSecondaryUserId(secondaryUserId);
+    userRole.setRoleId(secondaryRole.getId());
+
+    userRole.setAggregatorId(primaryRole.getAggregatorId());
+
+    userRole.setIsPrimary(false);
+    userRole.setIsActive(true);
+
+    userRole.setFromDate(request.getFromDate());
+    userRole.setToDate(request.getToDate());
+    userRole.setRemark(request.getRemarks());
+
+    userRole.setAuthStatus(AuthStatus.PENDING_FOR_AUTHORIZATION);
+
+    userRole.setRecordStatus("ACTIVE");
+    userRole.setDeletedAt(null);
+
+    userRoleRepository.save(userRole);
+
+    log.info(
+            "Secondary Role assigned successfully. Primary User ID: {}",
+            primaryUserId
+    );
+}
+
+
+...
+
+
+
+
