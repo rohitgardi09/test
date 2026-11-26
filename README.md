@@ -1,13 +1,12 @@
 
 public void validateAllowedSecondaryRole(
         String requestedSecondaryRole,
-        List<String> allowedSecondaryRoleCodes) {
+        List<String> secondaryBrCode) {
 
-    // Check requested role and allowed role list
     if (requestedSecondaryRole == null
             || requestedSecondaryRole.isBlank()
-            || allowedSecondaryRoleCodes == null
-            || allowedSecondaryRoleCodes.isEmpty()) {
+            || secondaryBrCode == null
+            || secondaryBrCode.isEmpty()) {
 
         throw new AdminPortalException(
                 FAILED_ERROR_CODE,
@@ -15,15 +14,20 @@ public void validateAllowedSecondaryRole(
         );
     }
 
-    // Check whether requested role is present in allowed list
-    boolean isAllowed = allowedSecondaryRoleCodes.stream()
+    // Convert comma-separated values into List
+    List<String> allowedRoles = secondaryBrCode.stream()
             .filter(Objects::nonNull)
+            .flatMap(value -> Arrays.stream(value.split(",")))
             .map(String::trim)
-            .anyMatch(code ->
-                    code.equalsIgnoreCase(requestedSecondaryRole.trim())
+            .filter(role -> !role.isEmpty())
+            .toList();
+
+    // Validate requested Secondary Role
+    boolean isAllowed = allowedRoles.stream()
+            .anyMatch(role ->
+                    role.equalsIgnoreCase(requestedSecondaryRole.trim())
             );
 
-    // Throw exception if role is not allowed
     if (!isAllowed) {
         throw new AdminPortalException(
                 FAILED_ERROR_CODE,
@@ -36,6 +40,9 @@ public void validateAllowedSecondaryRole(
 
 
 
+
+
+
 List<String> allowedSecondaryRoleCodes =
         primaryBusinessRole.getSecondaryBrCode();
 
@@ -43,3 +50,4 @@ userManagementValidator.validateAllowedSecondaryRole(
         request.getSecondaryRole(),
         allowedSecondaryRoleCodes
 );
+
