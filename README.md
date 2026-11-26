@@ -1,53 +1,20 @@
 
-public void validateAllowedSecondaryRole(
-        String requestedSecondaryRole,
-        List<String> secondaryBrCode) {
-
-    if (requestedSecondaryRole == null
-            || requestedSecondaryRole.isBlank()
-            || secondaryBrCode == null
-            || secondaryBrCode.isEmpty()) {
-
-        throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                SECONDARY_ROLE_NOT_ALLOWED
-        );
-    }
-
-    // Convert comma-separated values into List
-    List<String> allowedRoles = secondaryBrCode.stream()
-            .filter(Objects::nonNull)
-            .flatMap(value -> Arrays.stream(value.split(",")))
-            .map(String::trim)
-            .filter(role -> !role.isEmpty())
-            .toList();
-
-    // Validate requested Secondary Role
-    boolean isAllowed = allowedRoles.stream()
-            .anyMatch(role ->
-                    role.equalsIgnoreCase(requestedSecondaryRole.trim())
-            );
-
-    if (!isAllowed) {
-        throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                SECONDARY_ROLE_NOT_ALLOWED
-        );
-    }
-}
-
-
-
-
-
-
-
-
-List<String> allowedSecondaryRoleCodes =
-        primaryBusinessRole.getSecondaryBrCode();
-
-userManagementValidator.validateAllowedSecondaryRole(
-        request.getSecondaryRole(),
-        allowedSecondaryRoleCodes
+CREATE TABLE USER_ROLE_AUDIT (
+    ID                  RAW(16),
+    REV                 NUMBER(19,0) NOT NULL,
+    REVTYPE             NUMBER(3,0) NOT NULL,
+    AGGREGATOR_ID       RAW(16) NOT NULL,
+    ROLE_ID             RAW(16) NOT NULL,
+    USER_ID             RAW(16) NOT NULL,
+    IS_PRIMARY          NUMBER(1,0) NOT NULL,
+    IS_ACTIVE           NUMBER(1,0) NOT NULL,
+    CREATED_AT          NUMBER,
+    CREATED_BY          VARCHAR2(100 BYTE),
+    FROM_DATE           NUMBER,
+    TO_DATE             NUMBER,
+    SECONDARY_USER_ID   RAW(16),
+    REMARK              VARCHAR2(500 BYTE),
+    AUTH_STATUS         VARCHAR2(50 BYTE),
+    RECORD_STATUS       VARCHAR2(50 BYTE),
+    DELETED_AT          NUMBER
 );
-
