@@ -1,61 +1,53 @@
-
-public Users UpdateUserAndAdmins(UpdateUserRequest updateUserRequest) {
+public Users saveUser(UserCreationRequest userCreateRequest) {
     try {
-        log.info("Starting User and Admin update for AD ID: {}",
-                updateUserRequest.getAdId());
+        // Create user entity
+        Users user = userManagementMapper.mapRequestToEntity(userCreateRequest);
 
-        // Fetch existing user
-        Users user = userManagementValidator.getUserByAdId(
-                updateUserRequest.getAdId());
+        // Set aggregator
+        Optional<UUID> aggregatorId =
+                aggregatorMasterRepository.findIdByAggregatorCode(SBI_AGGREGATOR_CODE);
 
-        // Update user details
-        userManagementMapper.updateUserAndAdmins(updateUserRequest, user);
+        aggregatorId.ifPresent(user::setAggregatorId);
 
-        // Get primary role code from request
-        String primaryRoleCode = updateUserRequest
-                .getUserCreationRequest()
-                .getPrimaryRoleCode();
+        user.setStatus(UserStatus.ACTIVE);
+        user.setAuthStatus(AuthStatus.PENDING);
 
-        if (primaryRoleCode != null && !primaryRoleCode.isBlank()) {
+        // Save user first to generate User ID
+        Users savedUser = userManagementRepository.save(user);
 
-            // Fetch primary role from BUSINESS_ROLES_MASTER
-            BusinessRolesMaster primaryBusinessRole =
-                    businessRolesMasterRepository
-                            .findByBrCodeAndIsActiveTrue(primaryRoleCode)
-                            .orElseThrow(() -> new AdminPortalException(
-                                    FAILED_ERROR_CODE,
-                                    "Primary Role not found"));
+        // Fetch Primary Role using BR_CODE
+        String primaryRoleCode = userCreateRequest.getPrimaryRoleCode();
 
-            // Fetch existing primary role entry
-            UserRole primaryUserRole = userRoleRepository
-                    .findByUserIdAndIsPrimaryTrue(user.getId())
-                    .orElseThrow(() -> new AdminPortalException(
-                            FAILED_ERROR_CODE,
-                            "Primary User Role not found"));
-
-            // Update primary role details
-            primaryUserRole.setRoleId(primaryBusinessRole.getId());
-            primaryUserRole.setAggregatorId(
-                    primaryBusinessRole.getAggregatorId());
-
-            userRoleRepository.save(primaryUserRole);
+        if (primaryRoleCode == null || primaryRoleCode.isBlank()) {
+            throw new AdminPortalException(
+                    FAILED_ERROR_CODE, "Primary Role Code is mandatory");
         }
 
-        Users updatedUser = userManagementRepository.save(user);
+        BusinessRolesMaster primaryRole = businessRolesMasterRepository
+                .findByBrCodeAndIsActiveTrue(primaryRoleCode)
+                .orElseThrow(() -> new AdminPortalException(
+                        FAILED_ERROR_CODE, "Primary Role not found"));
 
-        log.info("User and Admin updated successfully for AD ID: {}",
-                updateUserRequest.getAdId());
+        // Create Primary User Role entry
+        UserRole userRole = UserRole.builder()
+                .userId(savedUser.getId())
+                .roleId(primaryRole.getId())
+                .aggregatorId(primaryRole.getAggregatorId())
+                .isPrimary(true)
+                .isActive(true)
+                .authStatus(AuthStatus.PENDING_FOR_AUTHORIZATION)
+                .recordStatus(1)
+                .build();
 
-        return updatedUser;
+        userRoleRepository.save(userRole);
+
+        return savedUser;
 
     } catch (AdminPortalException e) {
         throw e;
     } catch (Exception e) {
-        log.error("Error while updating User and Admin", e);
+        log.error("Error while saving user information", e);
         throw new AdminPortalException(
                 GENERIC_ERROR_CODE, GENERIC_ERROR_MESSAGE);
     }
 }
-
-
-Optional<UserRole> findByUserIdAndIsPrimaryTrue(UUID userId);
