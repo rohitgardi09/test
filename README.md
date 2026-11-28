@@ -1,3 +1,19 @@
+{
+  "adId": "10A00001",
+  "groupCode": "GROUP001",
+  "firstName": "Rahul",
+  "lastName": "Patil",
+  "designation": "Manager",
+  "mobilePhone": "9876543210",
+  "emailId": "rahul.patil@example.com",
+  "officeAddress": "Navi Mumbai",
+  "primaryRoleCode": "CHANNEL_MANAGER"
+} 
+
+
+
+
+
 public AdminPortalResponse<userCreationResponse> CreateUser(
         UserCreationRequest userCreateRequest, String roleType) {
 
