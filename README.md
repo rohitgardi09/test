@@ -1,80 +1,61 @@
-{
-  "adId": "10A00001",
-  "groupCode": "GROUP001",
-  "firstName": "Rahul",
-  "lastName": "Patil",
-  "designation": "Manager",
-  "mobilePhone": "9876543210",
-  "emailId": "rahul.patil@example.com",
-  "officeAddress": "Navi Mumbai",
-  "primaryRoleCode": "CHANNEL_MANAGER"
-} 
 
+public Users UpdateUserAndAdmins(UpdateUserRequest updateUserRequest) {
+    try {
+        log.info("Starting User and Admin update for AD ID: {}",
+                updateUserRequest.getAdId());
 
+        // Fetch existing user
+        Users user = userManagementValidator.getUserByAdId(
+                updateUserRequest.getAdId());
 
+        // Update user details
+        userManagementMapper.updateUserAndAdmins(updateUserRequest, user);
 
+        // Get primary role code from request
+        String primaryRoleCode = updateUserRequest
+                .getUserCreationRequest()
+                .getPrimaryRoleCode();
 
-public AdminPortalResponse<userCreationResponse> CreateUser(
-        UserCreationRequest userCreateRequest, String roleType) {
+        if (primaryRoleCode != null && !primaryRoleCode.isBlank()) {
 
-    String loggedUser =
-            EPayIdentityUtil.getUserPrincipal().getUsername();
+            // Fetch primary role from BUSINESS_ROLES_MASTER
+            BusinessRolesMaster primaryBusinessRole =
+                    businessRolesMasterRepository
+                            .findByBrCodeAndIsActiveTrue(primaryRoleCode)
+                            .orElseThrow(() -> new AdminPortalException(
+                                    FAILED_ERROR_CODE,
+                                    "Primary Role not found"));
 
-    logger.info("Validating logged-in user: {}", loggedUser);
+            // Fetch existing primary role entry
+            UserRole primaryUserRole = userRoleRepository
+                    .findByUserIdAndIsPrimaryTrue(user.getId())
+                    .orElseThrow(() -> new AdminPortalException(
+                            FAILED_ERROR_CODE,
+                            "Primary User Role not found"));
 
-    // Check logged-in user's Primary Role
-    userManagementValidator.validateLoggedInUserPrimaryRole(loggedUser);
+            // Update primary role details
+            primaryUserRole.setRoleId(primaryBusinessRole.getId());
+            primaryUserRole.setAggregatorId(
+                    primaryBusinessRole.getAggregatorId());
 
-    logger.info("Validating user info for AD ID: {}",
-            userCreateRequest.getAdId());
+            userRoleRepository.save(primaryUserRole);
+        }
 
-    userManagementValidator.validateUserCreateRequest(
-            userCreateRequest, roleType);
+        Users updatedUser = userManagementRepository.save(user);
 
-    logger.info("Saving user info for AD ID: {}",
-            userCreateRequest.getAdId());
+        log.info("User and Admin updated successfully for AD ID: {}",
+                updateUserRequest.getAdId());
 
-    Users users = userManagementDao.saveUser(userCreateRequest);
+        return updatedUser;
 
-    userCreationResponse userResponse =
-            userCreationResponse.builder()
-                    .userId(users.getId())
-                    .message(USER_CREATED_SUCCESSFULLY)
-                    .build();
-
-    logger.info("Successfully saved user details for userId: {}",
-            users.getId());
-
-    return AdminPortalResponse.builder()
-            .status(SUCCESS_RESPONSE_CODE)
-            .data(List.of(userResponse))
-            .build();
-}
-
-public void validateLoggedInUserPrimaryRole(String loggedUser) {
-
-    UUID loggedUserId = userManagementRepository.findIDByAdId(loggedUser);
-
-    if (loggedUserId == null) {
+    } catch (AdminPortalException e) {
+        throw e;
+    } catch (Exception e) {
+        log.error("Error while updating User and Admin", e);
         throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                "Logged-in user not found"
-        );
-    }
-
-    boolean hasPrimaryRole =
-            userRoleRepository.existsByUserIdAndIsPrimaryTrueAndIsActiveTrue(
-                    loggedUserId
-            );
-
-    if (!hasPrimaryRole) {
-        throw new AdminPortalException(
-                FAILED_ERROR_CODE,
-                "You are not authorized to create users. Primary role is required."
-        );
+                GENERIC_ERROR_CODE, GENERIC_ERROR_MESSAGE);
     }
 }
 
 
-boolean existsByUserIdAndIsPrimaryTrueAndIsActiveTrue(UUID userId); 
-
+Optional<UserRole> findByUserIdAndIsPrimaryTrue(UUID userId);
