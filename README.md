@@ -1,3 +1,23 @@
+{
+  "adId": "LOGGED_IN_ADMIN_AD_ID",
+  "userCreationRequest": {
+    "adId": "PRIMARY_USER_AD_ID"
+  },
+  "secondaryRoleAssignment": {
+    "secondaryRoleCode": "RELATIONSHIP_MANAGER",
+    "secondaryAdId": "SECONDARY_USER_AD_ID",
+    "fromDate": 1795824000000,
+    "toDate": 1827360000000,
+    "remarks": "Secondary role assignment"
+  },
+  "relievedStatus": false
+}
+
+
+
+
+
+
 @Mapping(target = "firstName", source = "userCreationRequest.firstName")
 @Mapping(target = "lastName", source = "userCreationRequest.lastName")
 @Mapping(target = "designation", source = "userCreationRequest.designation")
